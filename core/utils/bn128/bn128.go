@@ -3,8 +3,6 @@ package bn128
 import (
 	"errors"
 	"math/big"
-
-	"github.com/arnaucube/go-snark/fields"
 )
 
 // Bn128 is the data structure of the BN128
@@ -15,10 +13,10 @@ type Bn128 struct {
 	Gg2           [2][2]*big.Int
 	NonResidueFq2 *big.Int
 	NonResidueFq6 [2]*big.Int
-	Fq1           fields.Fq
-	Fq2           fields.Fq2
-	Fq6           fields.Fq6
-	Fq12          fields.Fq12
+	Fq1           Fq
+	Fq2           Fq2
+	Fq6           Fq6
+	Fq12          Fq12
 	G1            G1
 	G2            G2
 	LoopCount     *big.Int
@@ -82,7 +80,7 @@ func NewBn128() (Bn128, error) {
 		},
 	}
 
-	b.Fq1 = fields.NewFq(q)
+	b.Fq1 = NewFq(q)
 	b.NonResidueFq2, ok = new(big.Int).SetString("21888242871839275222246405745257275088696311157297823662689037894645226208582", 10) // i
 	if !ok {
 		return b, errors.New("err with nonResidueFq2")
@@ -92,9 +90,9 @@ func NewBn128() (Bn128, error) {
 		big.NewInt(int64(1)),
 	}
 
-	b.Fq2 = fields.NewFq2(b.Fq1, b.NonResidueFq2)
-	b.Fq6 = fields.NewFq6(b.Fq2, b.NonResidueFq6)
-	b.Fq12 = fields.NewFq12(b.Fq6, b.Fq2, b.NonResidueFq6)
+	b.Fq2 = NewFq2(b.Fq1, b.NonResidueFq2)
+	b.Fq6 = NewFq6(b.Fq2, b.NonResidueFq6)
+	b.Fq12 = NewFq12(b.Fq6, b.Fq2, b.NonResidueFq6)
 
 	b.G1 = NewG1(b.Fq1, b.Gg1)
 	b.G2 = NewG2(b.Fq2, b.Gg2)
@@ -108,12 +106,12 @@ func NewBn128() (Bn128, error) {
 }
 
 // NewFqR returns a new Finite Field over R
-func NewFqR() (fields.Fq, error) {
+func NewFqR() (Fq, error) {
 	r, ok := new(big.Int).SetString("21888242871839275222246405745257275088548364400416034343698204186575808495617", 10)
 	if !ok {
-		return fields.Fq{}, errors.New("err parsing R")
+		return Fq{}, errors.New("err parsing R")
 	}
-	fqR := fields.NewFq(r)
+	fqR := NewFq(r)
 	return fqR, nil
 }
 
