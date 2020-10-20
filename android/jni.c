@@ -18,7 +18,7 @@ Java_com_hpb_android_backend_GoHCashBackend_hCashCreateAccount(JNIEnv *env,
     const char *pwd_str = (*env)->GetStringUTFChars(env, pwd, 0);
     size_t path_len = (*env)->GetStringUTFLength(env, pwd);
     char *accountRet = hCashCreateAccount((struct go_string) {
-            .str = path_str,
+            .str = pwd_str,
             .n = path_len
     });
     (*env)->ReleaseStringUTFChars(env, pwd, pwd_str);
