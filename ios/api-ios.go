@@ -7,19 +7,19 @@ import (
 )
 
 //export hCashBurnProof
-func hCashBurnProof() *C.char {
+func hCashBurnProof() string {
 	s := prover.BurnProof()
-	return C.CString(s)
+	return s
 }
 
 //export hCashCreateAccount
-func hCashCreateAccount(pwd string) *C.char {
+func hCashCreateAccount(pwd string) string {
 
-	var b_pwd = make([]byte,len(pwd))
+	var b_pwd = make([]byte, len(pwd))
 	copy(b_pwd, []byte(pwd))
 
 	account := service.CreateAccount(string(b_pwd))
-	return C.CString(account.String())
+	return account.String()
 }
 
 func main() {}
