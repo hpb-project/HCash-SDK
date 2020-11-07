@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
 	"math/big"
 )
@@ -8,22 +9,17 @@ import (
 type BN128 struct {
 	a    string
 	b    string
-	P    *big.Int
-	Q    *big.Int
+	p    *big.Int
 	n    *big.Int
 	fq   bn128.Fq
 	gRed bool
-	g    bn128.G1
+	G1    bn128.G1
 }
 
-type Point struct {
-	P [3]*big.Int
-}
+type Point [3]*big.Int
 
-func NewPoint(bn *BN128, d1, d2 *big.Int) *Point {
-	return &Point{
-		P: [3]*big.Int{d1, d2, bn.fq.One()},
-	}
+func NewPoint(bn *BN128, d1, d2 *ebigint.NBigInt) Point {
+	return Point{d1.Int, d2.Int, bn.fq.One()}
 }
 
 var (
@@ -36,59 +32,74 @@ func NewBN128() *BN128 {
 	b := new(BN128)
 	b.a = "0"
 	b.b = "3"
-	b.P = FIELD_MODULUS
+	b.p = FIELD_MODULUS
 	b.n = GROUP_MODULUS
-	b.Q = b.n
+
+	b.gRed = false
 
 	gX, _ := big.NewInt(int64(0)).SetString("77da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4", 16)
 	gY, _ := big.NewInt(int64(0)).SetString("1485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875", 16)
 
-	b.fq = bn128.NewFq(b.Q)
+	b.fq = bn128.NewFq(b.n)
 	gG1 := [2]*big.Int{gX, gY}
-	b.g = bn128.NewG1(b.fq, gG1)
+	b.G1 = bn128.NewG1(b.fq, gG1)
 
 	return b
 }
 
-func (b *BN128) Zero() *Point {
-	var p Point
-	data := b.g.MulScalar(b.g.G, big.NewInt(0))
-	p.P[0] = data[0]
-	p.P[1] = data[1]
-	p.P[2] = data[2]
-	return &p
+func (b *BN128) Zero() Point {
+	data := b.G1.MulScalar(b.G1.G, big.NewInt(0))
+	return Point{data[0],data[1],data[2]}
 }
 
-func (b *BN128) Rand() (*big.Int, error) {
-	return b.fq.Rand()
+func (b *BN128) P () *ebigint.Red {
+	return ebigint.ToNBigInt(big.NewInt(0)).Red(b.p)
+}
+
+func (b *BN128) Q () *ebigint.Red {
+	return ebigint.ToNBigInt(big.NewInt(0)).Red(b.n)
+}
+
+func (b *BN128) FQ() bn128.Fq {
+	return b.fq
+}
+
+func (b *BN128) RanddomScalar() (*ebigint.NBigInt, error) {
+
+	r,e := b.fq.Rand()
+	if e != nil {
+		return nil, e
+	}
+	nr := ebigint.ToNBigInt(r)
+	return nr.ToRed(b.Q()), nil
 }
 
 func (b *BN128) Bytes(i *big.Int) string {
-	return i.Text(16)
+	return "0x" + i.Text(16)
 }
 
 func (b *BN128) B_MAX() int {
 	return B_MAX
 }
 
-func (b *BN128) Serialize(p *Point) (string, string) {
-	if p.P[0] == nil && p.P[1] == nil {
-		return "0000000000000000000000000000000000000000000000000000000000000000", "0000000000000000000000000000000000000000000000000000000000000000"
+func (b *BN128) Serialize(p Point) (string, string) {
+	if p[0] == nil && p[1] == nil {
+		return "0x0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000000000000000000000000000"
 	}
-	return b.Bytes(p.P[0]), b.Bytes(p.P[1])
+	return b.Bytes(p[0]), b.Bytes(p[1])
 }
 
-func (b *BN128) UnSerialize(x, y string) *Point {
+func (b *BN128) UnSerialize(x, y string) Point {
 	if x == "0000000000000000000000000000000000000000000000000000000000000000" && y == "0000000000000000000000000000000000000000000000000000000000000000" {
 		return b.Zero()
 	} else {
-		d1, _ := big.NewInt(0).SetString(x, 16)
-		d2, _ := big.NewInt(0).SetString(y, 16)
-		return NewPoint(b, d1, d2)
+		d1, _ := big.NewInt(0).SetString(x[2:], 16)
+		d2, _ := big.NewInt(0).SetString(y[2:], 16)
+		return NewPoint(b, ebigint.ToNBigInt(d1), ebigint.ToNBigInt(d2))
 	}
 }
 
-func (b *BN128) Representation(p *Point) string {
+func (b *BN128) Representation(p Point) string {
 	x, y := b.Serialize(p)
-	return "0x" + x + y
+	return x + y[2:]
 }
