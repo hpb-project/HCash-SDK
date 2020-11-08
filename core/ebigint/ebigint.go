@@ -26,7 +26,10 @@ func (this *NBigInt) ForceRed(r *Red) *NBigInt {
 	return this
 }
 
-
-func (this *NBigInt)ToRed(r *Red) *NBigInt {
+func (this *NBigInt) ToRed(r *Red) *NBigInt {
 	return r.ConvertTo(this).ForceRed(r)
+}
+
+func (this *NBigInt) GetRed() *Red {
+	return this.r
 }

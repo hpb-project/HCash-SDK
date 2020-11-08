@@ -6,9 +6,13 @@ type Red struct {
 	m *big.Int
 }
 
-func (this *Red) ConvertTo(b *NBigInt) *NBigInt{
+func (this *Red) ConvertTo(b *NBigInt) *NBigInt {
 	var r = this.m.Mod(this.m, b.Int)
 	return ToNBigInt(r)
+}
+
+func (this *Red) Number() *big.Int {
+	return this.m
 }
 
 //func (this *Red) IMod(b *NBigInt) *NBigInt {
@@ -21,4 +25,3 @@ func (this *Red) ConvertTo(b *NBigInt) *NBigInt{
 //	}
 //}
 //
-
