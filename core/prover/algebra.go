@@ -67,6 +67,85 @@ func NewGeneratorVector(Innards []utils.Point) GeneratorVector {
 	return *gv
 }
 
+type Convolver struct {
+	unity *ebigint.NBigInt
+}
+
+func NewConvolver() *Convolver {
+	c := &Convolver{}
+
+	b128 := utils.NewBN128()
+	unity, _ := big.NewInt(0).SetString("14a3074b02521e3b1ed9852e5028452693e87be4e910500c7ba9bbddb2f46edd", 16)
+	c.unity = ebigint.ToNBigInt(unity).ToRed(b128.Q())
+
+	return c
+}
+
+func (c *Convolver) FFT(input, inverse []string) []string {
+	var length = len(input)
+	if length == 1 {
+		return input
+	}
+	if length%2 != 0 {
+		panic("Input size must be a power of 2!")
+	}
+	fq := bn128.NewFq(c.unity.GetRed().Number())
+	base := big.NewInt(1).Lsh(big.NewInt(1), 28)
+	var omegas = fq.Exp(c.unity.Int, base.Div(base, big.NewInt(int64(length))))
+	if inverse != nil && len(inverse) > 0 {
+		fq.Inverse()
+	}
+}
+
+type FieldVectorPolynomial struct {
+	coefficients []*PedersenCommitment
+}
+
+func NewFieldVectorPolynomial(coefficients []*PedersenCommitment) *FieldVectorPolynomial {
+	fvp := &FieldVectorPolynomial{
+		coefficients: coefficients,
+	}
+	return fvp
+}
+
+func (f *FieldVectorPolynomial) GetCoefficients() []*PedersenCommitment {
+	return f.coefficients
+}
+
+func (f *FieldVectorPolynomial) Evaluate(x *ebigint.NBigInt) *PedersenCommitment {
+	result := f.coefficients[0]
+	var accumulator = x
+	fq := bn128.NewFq(x.GetRed().Number())
+	for _, coefficient := range f.coefficients[1:] {
+		result.Add(coefficient.Times(accumulator))
+		accumulator = ebigint.ToNBigInt(fq.Mul(accumulator.Int, x.Int))
+	}
+
+	return result
+}
+
+func (f *FieldVectorPolynomial) InnerProduct(other *FieldVectorPolynomial) []*ebigint.NBigInt {
+	b128 := utils.NewBN128()
+	var innards = other.GetCoefficients()
+	var length = len(f.coefficients) + len(innards) - 1
+	var result = make([]*ebigint.NBigInt, length)
+	for i := 0; i < length; i++ {
+		result[i] = ebigint.ToNBigInt(big.NewInt(0)).ToRed(b128.Q())
+	}
+
+	fq := bn128.NewFq(b128.Q().Number())
+
+	for i := 0; i < len(f.coefficients); i++ {
+		mine := f.coefficients[i]
+		for j := 0; j < len(innards); j++ {
+			theirs := innards[j]
+			result[i+j] = ebigint.ToNBigInt(fq.Add(result[i+j].Int, mine.InnerProduct(theirs)))
+		}
+	}
+
+	return result
+}
+
 type PedersenCommitment struct {
 	params GeneratorParams
 	x      *ebigint.NBigInt
@@ -141,8 +220,8 @@ func NewPolyCommitment(params GeneratorParams, coefficients []*ebigint.NBigInt) 
 	return pc
 }
 
-func (pc *PolyCommitment) GetCommitments() []*PedersenCommitment {
-	commitments := make([]*PedersenCommitment, len(pc.coefficientCommitments[1:]))
+func (pc *PolyCommitment) GetCommitments() []utils.Point {
+	commitments := make([]utils.Point, len(pc.coefficientCommitments[1:]))
 	for i, commitment := range pc.coefficientCommitments[1:] {
 		commitments[i] = commitment.Commit()
 	}
@@ -151,15 +230,12 @@ func (pc *PolyCommitment) GetCommitments() []*PedersenCommitment {
 
 func (pc *PolyCommitment) Evaluate(x *ebigint.NBigInt) *PedersenCommitment {
 	var result = pc.coefficientCommitments[0]
-	var accumulator = x.Int
-	//coefficientCommitments.slice(1).forEach((commitment) => {
-	//	result = result.add(commitment.times(accumulator));
-	//	accumulator = accumulator.redMul(x);
-	//});
+	var accumulator = x
+
 	fq := bn128.NewFq(x.GetRed().Number())
-	for i, commitment := range pc.coefficientCommitments[1:] {
-		result = result.Add(commitment.Times(accmulator))
-		accumulator = fq.Mul(accumulator, x.Int)
+	for _, commitment := range pc.coefficientCommitments[1:] {
+		result = result.Add(commitment.Times(accumulator))
+		accumulator = ebigint.ToNBigInt(fq.Mul(accumulator.Int, x.Int))
 	}
 	return result
 }
