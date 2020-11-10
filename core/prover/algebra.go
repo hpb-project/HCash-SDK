@@ -2,6 +2,7 @@ package prover
 
 import (
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"github.com/hpb-project/HCash-SDK/core/utils"
 	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
@@ -59,12 +60,74 @@ func (g *GeneratorParams) Commit(blinding, gExp, hExp string) {
 }
 
 type GeneratorVector struct {
+	vector []utils.Point
 }
 
-func NewGeneratorVector(Innards []utils.Point) GeneratorVector {
+func NewGeneratorVector(Innards []utils.Point) *GeneratorVector {
 	gv := &GeneratorVector{}
+	gv.vector = Innards
+	return gv
+}
 
-	return *gv
+func (g *GeneratorVector) GetVector() []utils.Point {
+	return g.vector
+}
+
+func (g *GeneratorVector) Length() int {
+	return len(g.vector)
+}
+
+func (g *GeneratorVector) Slice(begin,end int) *GeneratorVector {
+	return NewGeneratorVector(g.vector[begin:end])
+}
+
+func (g *GeneratorVector) Commit(exponents []*ebigint.NBigInt) utils.Point {
+	b128 := utils.NewBN128()
+	var nVectors = make([]utils.Point, 0)
+	nVectors = append(nVectors, b128.Zero())
+	for _,c := range g.vector {
+		nVectors = append(nVectors, c)
+	}
+
+	// todo : replace to GetVector()
+	var innards = exponents
+
+	var current utils.Point
+
+	for i,accum := range nVectors {
+		t := b128.G1.MulScalar(current, innards[i].Int)
+		current = b128.G1.Add(accum,t)
+	}
+
+	return current
+}
+
+func (g *GeneratorVector) Sum() utils.Point {
+	b128 := utils.NewBN128()
+	var nVectors = make([]utils.Point, 0)
+	nVectors = append(nVectors, b128.Zero())
+	for _,c := range g.vector {
+		nVectors = append(nVectors, c)
+	}
+
+	var current utils.Point
+
+	for _,accum := range nVectors {
+		current = b128.G1.Add(accum, current)
+	}
+
+	return current
+}
+
+func (g *GeneratorVector) Add(other *GeneratorVector) *GeneratorVector {
+	b128 := utils.NewBN128()
+	var innards = other.GetVector()
+	var nInnards = make([]utils.Point, len(g.vector))
+	for i,accum := range g.vector {
+		nInnards[i] = b128.G1.Add(accum, innards[i])
+	}
+
+	return NewGeneratorVector(nInnards)
 }
 
 type Convolver struct {
@@ -81,7 +144,7 @@ func NewConvolver() *Convolver {
 	return c
 }
 
-func (c *Convolver) FFT(input, inverse []string) []string {
+func (c *Convolver) FFT(input []string, inverse bool) []string {
 	var length = len(input)
 	if length == 1 {
 		return input
@@ -91,10 +154,35 @@ func (c *Convolver) FFT(input, inverse []string) []string {
 	}
 	fq := bn128.NewFq(c.unity.GetRed().Number())
 	base := big.NewInt(1).Lsh(big.NewInt(1), 28)
-	var omegas = fq.Exp(c.unity.Int, base.Div(base, big.NewInt(int64(length))))
-	if inverse != nil && len(inverse) > 0 {
-		fq.Inverse()
+	var omega = fq.Exp(c.unity.Int, base.Div(base, big.NewInt(int64(length))))
+	if inverse {
+		omega = fq.Inverse(omega)
 	}
+	var even = c.FFT(input.extract(0), inverse)
+	var odd  = c.FFT(input.extract(1), inverse)
+
+	var omegas = make([]*ebigint.NBigInt, 0)
+	omegas = append(omegas, ebigint.ToNBigInt(big.NewInt(1)).ToRed(c.unity.GetRed()))
+
+	for i:=0; i < length/2; i++ {
+		omegas = append(omegas, ebigint.ToNBigInt(fq.Mul(omegas[i-1].Int, omega)))
+	}
+
+	// todo : implement this.
+	var nomegas = NewFieldVector(omegas)
+	var result = even.Add(odd.Hadamard(omegas)).Concat(even.Add(odd.Hadamard(omegas).Negate()))
+	if inverse {
+		result = result.times(new BN(2).toRed(bn128.q).redInvm());
+	}
+	return result
+}
+
+func (c *Convolver) Convolution(exponent int, base []string) {
+	size := len(base)
+	temp := c.FFT(base, false).Hadamard(c.FFT(exponent.Flip(), false))
+
+	return fft(temp.slice(0, size / 2).add(temp.slice(size / 2)).times(new BN(2).toRed(bn128.q).redInvm()), true);
+
 }
 
 type FieldVectorPolynomial struct {
