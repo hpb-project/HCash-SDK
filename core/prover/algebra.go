@@ -13,8 +13,8 @@ import (
 type GeneratorParams struct {
 	g  utils.Point
 	h  utils.Point
-	gs GeneratorVector
-	hs GeneratorVector
+	gs *GeneratorVector
+	hs *GeneratorVector
 }
 
 func NewGeneratorParams(h int) *GeneratorParams {
@@ -47,16 +47,182 @@ func (g GeneratorParams) GetH() utils.Point {
 	return g.h
 }
 
-func (g GeneratorParams) GetGS() GeneratorVector {
+func (g GeneratorParams) GetGS() *GeneratorVector {
 	return g.gs
 }
 
-func (g GeneratorParams) GetHS() GeneratorVector {
+func (g GeneratorParams) GetHS() *GeneratorVector {
 	return g.hs
 }
 
 func (g *GeneratorParams) Commit(blinding, gExp, hExp string) {
 	// todo: implement commit.
+}
+
+type FieldVector struct {
+	vector []*ebigint.NBigInt
+}
+
+func NewFieldVector(vector []*ebigint.NBigInt) *FieldVector {
+	fv := &FieldVector{}
+	fv.vector = vector
+
+	return fv
+}
+
+func (f *FieldVector)GetVector() []*ebigint.NBigInt {
+	return f.vector
+}
+
+func (f *FieldVector)Length() int {
+	return len(f.vector)
+}
+
+func (f *FieldVector) Slice(begin, end int) *FieldVector {
+	var innards = f.vector[begin:end]
+	return NewFieldVector(innards)
+}
+
+func (f *FieldVector) Add(other *FieldVector) *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var innards = other.GetVector()
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Add(accum.Int, innards[i].Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+
+func (f *FieldVector) Plus (constant *ebigint.NBigInt) *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Add(accum.Int, constant.Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Sum () *ebigint.NBigInt {
+	b128 := utils.NewBN128()
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nVectors = make([]*ebigint.NBigInt, 0)
+	nVectors = append(nVectors, ebigint.ToNBigInt(big.NewInt(0)).ToRed(b128.Q()))
+	for _,c := range f.vector {
+		nVectors = append(nVectors, c)
+	}
+
+	// todo : replace to GetVector()
+	var current *ebigint.NBigInt
+
+	for _,accum := range nVectors {
+		current = ebigint.ToNBigInt(fq.Add(accum.Int, current.Int))
+	}
+
+	return current
+}
+
+func (f *FieldVector) Negate() *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Neg(accum.Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Subtract(other *FieldVector) *FieldVector {
+	return f.Add(other.Negate())
+}
+
+func (f *FieldVector) Hadamard(other *FieldVector) *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var innards = other.vector
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Mul(accum.Int, innards[i].Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Invert() *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Inverse(accum.Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Extract(parity int) *FieldVector {
+	var nInnards = make([]*ebigint.NBigInt, 0)
+	for i,accum := range f.vector {
+		if i%2 == parity {
+			nInnards = append(nInnards, accum)
+		}
+	}
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Flip() *FieldVector {
+	var size = len(f.vector)
+	var nInnards = make([]*ebigint.NBigInt, size)
+	for i,_ := range f.vector {
+		nInnards[i] = f.vector[(size-i)%size]
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Concat(other *FieldVector) *FieldVector {
+	var nInnards = make([]*ebigint.NBigInt, 0)
+	for _,elem := range f.vector {
+		nInnards = append(nInnards, elem)
+	}
+
+	for _,elem := range other.vector {
+		nInnards = append(nInnards, elem)
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) Times(constant *ebigint.NBigInt) *FieldVector {
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nInnards = make([]*ebigint.NBigInt, len(f.vector))
+	for i,accum := range f.vector {
+		nInnards[i] = ebigint.ToNBigInt(fq.Mul(accum.Int, constant.Int))
+	}
+
+	return NewFieldVector(nInnards)
+}
+
+func (f *FieldVector) InnerProduct(other *FieldVector) *ebigint.NBigInt {
+	var innards = other.GetVector()
+
+	b128 := utils.NewBN128()
+	fq := bn128.NewFq(f.vector[0].GetRed().Number())
+	var nVectors = make([]*ebigint.NBigInt, 0)
+	nVectors = append(nVectors, ebigint.ToNBigInt(big.NewInt(0)).ToRed(b128.Q()))
+	for _,c := range f.vector {
+		nVectors = append(nVectors, c)
+	}
+
+	// todo : replace to GetVector()
+	var current *ebigint.NBigInt
+
+	for i,accum := range nVectors {
+		t := fq.Mul(current.Int,innards[i].Int)
+		current = ebigint.ToNBigInt(fq.Add(accum.Int, t))
+	}
+
+	return current
+
 }
 
 type GeneratorVector struct {
@@ -125,6 +291,61 @@ func (g *GeneratorVector) Add(other *GeneratorVector) *GeneratorVector {
 	var nInnards = make([]utils.Point, len(g.vector))
 	for i,accum := range g.vector {
 		nInnards[i] = b128.G1.Add(accum, innards[i])
+	}
+
+	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) Hadamard(exponents []*ebigint.NBigInt) *GeneratorVector {
+	b128 := utils.NewBN128()
+	var innards = exponents
+	var nInnards = make([]utils.Point, len(g.vector))
+	for i,elem := range g.vector {
+		nInnards[i] = b128.G1.MulScalar(elem, innards[i].Int)
+	}
+
+	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) Negate() *GeneratorVector {
+	b128 := utils.NewBN128()
+	var nInnards = make([]utils.Point, len(g.vector))
+	for i,elem := range g.vector {
+		nInnards[i] = b128.G1.Neg(elem)
+	}
+
+	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) Times(constant *ebigint.NBigInt) *GeneratorVector{
+	b128 := utils.NewBN128()
+	var nInnards = make([]utils.Point, len(g.vector))
+	for i,elem := range g.vector {
+		nInnards[i] = b128.G1.MulScalar(elem, constant.Int)
+	}
+
+	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) Extract(parity int) *GeneratorVector {
+	var nInnards = make([]utils.Point, len(g.vector))
+	for i,elem := range g.vector {
+		if i%2 == parity {
+			nInnards = append(nInnards, elem)
+		}
+	}
+
+	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) Concat(other *GeneratorVector) *GeneratorVector{
+	var nInnards = make([]utils.Point, 0)
+	for _,elem := range g.vector {
+		nInnards = append(nInnards, elem)
+	}
+
+	for _, elem := range other.vector {
+		nInnards = append(nInnards, elem)
 	}
 
 	return NewGeneratorVector(nInnards)
