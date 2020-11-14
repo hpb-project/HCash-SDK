@@ -470,21 +470,22 @@ func (c *Convolver) FFT_Point(input *GeneratorVector, inverse bool) *GeneratorVe
 }
 
 type FieldVectorPolynomial struct {
-	coefficients []*PedersenCommitment
+	//coefficients []*PedersenCommitment
+	coefficients []*FieldVector
 }
 
-func NewFieldVectorPolynomial(coefficients []*PedersenCommitment) *FieldVectorPolynomial {
+func NewFieldVectorPolynomial(coefficients []*FieldVector) *FieldVectorPolynomial {
 	fvp := &FieldVectorPolynomial{
 		coefficients: coefficients,
 	}
 	return fvp
 }
 
-func (f *FieldVectorPolynomial) GetCoefficients() []*PedersenCommitment {
+func (f *FieldVectorPolynomial) GetCoefficients() []*FieldVector {
 	return f.coefficients
 }
 
-func (f *FieldVectorPolynomial) Evaluate(x *ebigint.NBigInt) *PedersenCommitment {
+func (f *FieldVectorPolynomial) Evaluate(x *ebigint.NBigInt) *FieldVector {
 	result := f.coefficients[0]
 	var accumulator = x
 	fq := bn128.NewFq(x.GetRed().Number())
@@ -511,8 +512,8 @@ func (f *FieldVectorPolynomial) InnerProduct(other *FieldVectorPolynomial) []*eb
 		mine := f.coefficients[i]
 		for j := 0; j < len(innards); j++ {
 			theirs := innards[j]
-			// todo: check mine type.
-			result[i+j] = ebigint.ToNBigInt(fq.Add(result[i+j].Int, mine.InnerProduct(theirs)))
+			t := mine.InnerProduct(theirs)
+			result[i+j] = ebigint.ToNBigInt(fq.Add(result[i+j].Int, t.Int)).ToRed(t.GetRed())
 		}
 	}
 
