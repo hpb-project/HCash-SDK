@@ -2,6 +2,8 @@ package prover
 
 import (
 	"encoding/hex"
+	"reflect"
+
 	//"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"github.com/hpb-project/HCash-SDK/core/utils"
@@ -17,24 +19,32 @@ type GeneratorParams struct {
 	hs *GeneratorVector
 }
 
-func NewGeneratorParams(h int) *GeneratorParams {
+func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParams {
 	gp := &GeneratorParams{}
-
 	gp.g = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
-	gp.h = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("H"))))
 
-	gsInnards := make([]utils.Point, 0)
-	hsInnards := make([]utils.Point, 0)
-	for i := 0; i < h; i++ {
-		p1 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
-			solsha3.String("G"), solsha3.Uint32(i))))
-		gsInnards = append(gsInnards, p1)
-		p2 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
-			solsha3.String("H"), solsha3.Uint32(i))))
-		hsInnards = append(hsInnards, p2)
+	h_types := reflect.TypeOf(hi).String()
+	if h_types == "int" || h_types == "uint" {
+		gsInnards := make([]utils.Point, 0)
+		hsInnards := make([]utils.Point, 0)
+		hVal := hi.(int)
+		for i := 0; i < hVal; i++ {
+			p1 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
+				solsha3.String("G"), solsha3.Uint32(i))))
+			gsInnards = append(gsInnards, p1)
+			p2 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
+				solsha3.String("H"), solsha3.Uint32(i))))
+			hsInnards = append(hsInnards, p2)
+		}
+		gp.h = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("H"))))
+
+		gp.gs = NewGeneratorVector(gsInnards)
+		gp.hs = NewGeneratorVector(hsInnards)
+	} else {
+		gp.h = hi.(utils.Point)
+		gp.gs = gs
+		gp.hs = hs
 	}
-	gp.gs = NewGeneratorVector(gsInnards)
-	gp.hs = NewGeneratorVector(hsInnards)
 
 	return gp
 }

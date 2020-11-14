@@ -25,7 +25,7 @@ func ReadBalance(CL, CR Pubkey, x *ebigint.NBigInt) int {
 	var gB = bn128.G1.Add(nCL, tmp)
 	var accumulator = bn128.Zero()
 
-	for i:= 0 ; i < bn128.B_MAX(); i++ {
+	for i := 0; i < bn128.B_MAX(); i++ {
 		if bn128.G1.Equal(accumulator, gB) {
 			return i
 		}
@@ -41,19 +41,18 @@ func Hash(str string) *ebigint.NBigInt {
 	// soliditySha3
 	hash := solsha3.SoliditySHA3(solsha3.String(str[2:]))
 	hexstr := hex.EncodeToString(hash)
-	n,_ := big.NewInt(0).SetString(hexstr, 16)
+	n, _ := big.NewInt(0).SetString(hexstr, 16)
 	return ebigint.ToNBigInt(n).ToRed(bn128.Q())
 }
 
-
 func Sign(address string, keypair []string) []string {
 	bn128 := NewBN128()
-	var k,_ = bn128.RanddomScalar()
+	var k, _ = bn128.RanddomScalar()
 	K := bn128.G1.MulScalar(bn128.G1.G, k.Int)
-	sx,sy := bn128.Serialize(K)
+	sx, sy := bn128.Serialize(K)
 
-	addressT,_ := abi.NewType("address", "", nil)
-	bytes32_2T,_ := abi.NewType("bytes32[2]", "", nil)
+	addressT, _ := abi.NewType("address", "", nil)
+	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
 
 	arguments := abi.Arguments{
 		{
@@ -68,30 +67,31 @@ func Sign(address string, keypair []string) []string {
 	}
 	bytes, _ := arguments.Pack(
 		common.HexToAddress(address),
-		[2]string{keypair[1],keypair[2]},
-		[3]string{sx,sy},
-		)
+		[2]string{keypair[1], keypair[2]},
+		[2]string{sx, sy},
+	)
 
 	bstr := hex.EncodeToString(bytes)
 
 	c := Hash(bstr)
 
-	privk,_ := big.NewInt(0).SetString(keypair[0], 16)
+	privk, _ := big.NewInt(0).SetString(keypair[0], 16)
 	p := bn128.FQ().Mul(c.Int, privk)
 	s := bn128.FQ().Add(p, k.Int)
 
 	return []string{bn128.Bytes(c.Int), bn128.Bytes(s)}
 }
 
-func CreateAccount() (string,string,string){
+func CreateAccount() (string, string, string) {
 	b128 := NewBN128()
-	x,_ := b128.RanddomScalar()
+	x, _ := b128.RanddomScalar()
 	p := b128.G1.MulScalar(b128.G1.G, x.Int)
 	priv := b128.Bytes(x.Int)
-	pub_x,pub_y := b128.Serialize(Point{p[0],p[1],p[2]})
+	pub_x, pub_y := b128.Serialize(Point{p[0], p[1], p[2]})
 
 	return priv, pub_x, pub_y
 }
+
 //
 //utils.mapInto = (seed) => { // seed is flattened 0x + hex string
 //		var seed_red = new BN(seed.slice(2), 16).toRed(bn128.p);
@@ -109,18 +109,18 @@ func CreateAccount() (string,string,string){
 func MapInto(seed string) Point {
 	bn128 := NewBN128()
 	fq := bn1282.NewFq(bn128.p)
-	n,_ := big.NewInt(0).SetString(seed[2:], 16)
+	n, _ := big.NewInt(0).SetString(seed[2:], 16)
 	seed_red := ebigint.ToNBigInt(n).ToRed(bn128.P())
 	one := big.NewInt(1)
 	p1_4 := one.Div(one, big.NewInt(4))
 	p_1_4 := bn128.p.Add(bn128.p, p1_4)
 
-	for ;; {
+	for {
 		y_squared := ebigint.ToNBigInt(fq.Add(bn128.FQ().Exp(seed_red.Int, big.NewInt(3)),
 			big.NewInt(3))).ToRed(bn128.P())
 		y := fq.Exp(y_squared.Int, p_1_4)
 
-		if fq.Equal(y_squared.Int,fq.Exp(y, big.NewInt(2))) {
+		if fq.Equal(y_squared.Int, fq.Exp(y, big.NewInt(2))) {
 			return NewPoint(bn128, seed_red, ebigint.ToNBigInt(y).ToRed(bn128.P()))
 		}
 		fq.Add(seed_red.Int, ebigint.ToNBigInt(big.NewInt(1)).ToRed(bn128.P()).Int)
@@ -128,13 +128,12 @@ func MapInto(seed string) Point {
 
 }
 
-
 func GEpoch(epoch uint) Point {
 
 	// soliditySha3
 	// todo : change the type of epoch with contract defined.
 	hash := solsha3.SoliditySHA3(solsha3.String("Zether"),
-								solsha3.Uint32(epoch))
+		solsha3.Uint32(epoch))
 	hashstr := "0x" + hex.EncodeToString(hash)
 
 	return MapInto(hashstr)
