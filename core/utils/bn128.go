@@ -13,7 +13,7 @@ type BN128 struct {
 	n    *big.Int
 	fq   bn128.Fq
 	gRed bool
-	G1    bn128.G1
+	G1   bn128.G1
 }
 
 type Point [3]*big.Int
@@ -49,14 +49,14 @@ func NewBN128() *BN128 {
 
 func (b *BN128) Zero() Point {
 	data := b.G1.MulScalar(b.G1.G, big.NewInt(0))
-	return Point{data[0],data[1],data[2]}
+	return Point{data[0], data[1], data[2]}
 }
 
-func (b *BN128) P () *ebigint.Red {
+func (b *BN128) P() *ebigint.Red {
 	return ebigint.ToNBigInt(big.NewInt(0)).Red(b.p)
 }
 
-func (b *BN128) Q () *ebigint.Red {
+func (b *BN128) Q() *ebigint.Red {
 	return ebigint.ToNBigInt(big.NewInt(0)).Red(b.n)
 }
 
@@ -64,14 +64,11 @@ func (b *BN128) FQ() bn128.Fq {
 	return b.fq
 }
 
-func (b *BN128) RanddomScalar() (*ebigint.NBigInt, error) {
+func (b *BN128) RanddomScalar() *ebigint.NBigInt {
 
-	r,e := b.fq.Rand()
-	if e != nil {
-		return nil, e
-	}
+	r, _ := b.fq.Rand()
 	nr := ebigint.ToNBigInt(r)
-	return nr.ToRed(b.Q()), nil
+	return nr.ToRed(b.Q())
 }
 
 func (b *BN128) Bytes(i *big.Int) string {

@@ -24,7 +24,7 @@ func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParam
 	gp.g = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
 
 	h_types := reflect.TypeOf(hi).String()
-	if h_types == "int" || h_types == "uint" {
+	if h_types == "int" {
 		gsInnards := make([]utils.Point, 0)
 		hsInnards := make([]utils.Point, 0)
 		hVal := hi.(int)
@@ -596,7 +596,7 @@ func NewPolyCommitment(params GeneratorParams, coefficients []*ebigint.NBigInt) 
 	pc.coefficientCommitments = append(pc.coefficientCommitments, tmp)
 
 	for _, coefficient := range coefficients[1:] {
-		rand, _ := b128.RanddomScalar()
+		rand := b128.RanddomScalar()
 		npc := NewPedersenCommitment(params, coefficient, rand)
 		pc.coefficientCommitments = append(pc.coefficientCommitments, npc)
 	}

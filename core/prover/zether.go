@@ -1,0 +1,295 @@
+package prover
+
+import (
+	"encoding/hex"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/hpb-project/HCash-SDK/core/ebigint"
+	"github.com/hpb-project/HCash-SDK/core/utils"
+	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
+	"math/big"
+	"sort"
+	"strings"
+)
+
+type ZetherProof struct {
+	BA utils.Point
+	BS utils.Point
+	A  utils.Point
+	B  utils.Point
+
+	CLnG []utils.Point
+	CRnG []utils.Point
+	C_0G []utils.Point
+	DG   []utils.Point
+	y_0G []utils.Point
+	gG   []utils.Point
+	C_XG []utils.Point
+	y_XG []utils.Point
+
+	f        *FieldVector
+	z_A      *ebigint.NBigInt
+	tCommits *GeneratorVector
+	tHat     *ebigint.NBigInt
+	mu       *ebigint.NBigInt
+
+	c     *ebigint.NBigInt
+	s_sk  *ebigint.NBigInt
+	s_r   *ebigint.NBigInt
+	s_b   *ebigint.NBigInt
+	s_tau *ebigint.NBigInt
+
+	ipProof InnerProductProof
+}
+
+func (z ZetherProof) Serialize() string {
+	b128 := utils.NewBN128()
+	result := "0x"
+	result += b128.Representation(z.BA)[2:]
+	result += b128.Representation(z.BS)[2:]
+	result += b128.Representation(z.A)[2:]
+	result += b128.Representation(z.B)[2:]
+
+	for _, CLnG_k := range z.CLnG {
+		result += b128.Representation(CLnG_k)
+	}
+
+	for _, CRnG_k := range z.CRnG {
+		result += b128.Representation(CRnG_k)
+	}
+
+	for _, C_0G_k := range z.C_0G {
+		result += b128.Representation(C_0G_k)
+	}
+	for _, DG_k := range z.DG {
+		result += b128.Representation(DG_k)
+	}
+	for _, y_0G_k := range z.y_0G {
+		result += b128.Representation(y_0G_k)
+	}
+	for _, gG_k := range z.gG {
+		result += b128.Representation(gG_k)
+	}
+	for _, C_XG_k := range z.C_XG {
+		result += b128.Representation(C_XG_k)
+	}
+	for _, y_XG_k := range z.y_XG {
+		result += b128.Representation(y_XG_k)
+	}
+
+	fv := z.f.GetVector()
+	for _, f_k := range fv {
+		result += b128.Bytes(f_k.Int)[2:]
+	}
+	result += b128.Bytes(z.z_A.Int)[2:]
+
+	tcv := z.tCommits.GetVector()
+	for _, commit := range tcv {
+		result += b128.Representation(commit)[2:]
+	}
+
+	result += b128.Bytes(z.tHat.Int)[2:]
+	result += b128.Bytes(z.mu.Int)[2:]
+	result += b128.Bytes(z.c.Int)[2:]
+	result += b128.Bytes(z.s_sk.Int)[2:]
+	result += b128.Bytes(z.s_r.Int)[2:]
+	result += b128.Bytes(z.s_b.Int)[2:]
+	result += b128.Bytes(z.s_tau.Int)[2:]
+
+	result += z.ipProof.Serialize()[2:]
+
+	return result
+}
+
+type ZetherProver struct {
+	params   *GeneratorParams
+	ipProver *InnerProductProver
+}
+
+func NewZetherProver() ZetherProver {
+	params := NewGeneratorParams(int(64), nil, nil)
+	return ZetherProver{
+		params:   params,
+		ipProver: new(InnerProductProver),
+	}
+}
+
+func (z ZetherProver) RecursivePolynomials(plist []*ebigint.NBigInt, accum *Polynomial,
+	a []*ebigint.NBigInt, b []*ebigint.NBigInt) {
+	if a == nil || len(a) == 0 {
+		plist = append(plist, accum.coefficients...)
+		return
+	}
+	b128 := utils.NewBN128()
+	fq := bn128.NewFq(b128.Q().Number())
+
+	var aTop = a[len(a)-1]
+	a = a[0 : len(a)-1]
+
+	var bTop = b[len(b)-1]
+	b = b[0 : len(b)-1]
+
+	var coefficients_1 = make([]*ebigint.NBigInt, 0)
+	t1 := ebigint.ToNBigInt(fq.Neg(aTop.Int)).ToRed(aTop.GetRed())
+	t2 := ebigint.ToNBigInt(fq.Sub(ebigint.ToNBigInt(big.NewInt(1)).ToRed(b128.Q()).Int, bTop.Int)).ToRed(b128.Q())
+	coefficients_1 = append(coefficients_1, t1)
+	coefficients_1 = append(coefficients_1, t2)
+	var left = NewPolynomial(coefficients_1)
+
+	var coefficients_2 = make([]*ebigint.NBigInt, 0)
+	coefficients_2 = append(coefficients_2, aTop)
+	coefficients_2 = append(coefficients_2, bTop)
+	var right = NewPolynomial(coefficients_2)
+
+	z.RecursivePolynomials(plist, accum.Mul(left), a, b)
+	z.RecursivePolynomials(plist, accum.Mul(right), a, b)
+
+	a = append(a, aTop)
+	b = append(b, bTop)
+}
+
+func Reverse(s []string) []string {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+	return s
+}
+
+func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness map[string]interface{}) *ZetherProof {
+	proof := &ZetherProof{}
+
+	bytes32_2ST, _ := abi.NewType("bytes32[2][]", "", nil)
+	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
+	uint256_T, _ := abi.NewType("uint256", "", nil)
+
+	arguments := abi.Arguments{
+		{
+			Type: bytes32_2ST,
+		},
+		{
+			Type: bytes32_2ST,
+		},
+		{
+			Type: bytes32_2ST,
+		},
+		{
+			Type: bytes32_2T,
+		},
+		{
+			Type: bytes32_2ST,
+		},
+		{
+			Type: uint256_T,
+		},
+	}
+	vCLn := statement["CLn"].([][2]string) //{{x1,y1}, {x2,y2}...}
+	vCRn := statement["CRn"].([][2]string)
+	vC := statement["C"].([][2]string)
+	vD := statement["D"].([2]string)
+	vy := statement["y"].([][2]string)
+	vepoch := statement["epoch"].(uint)
+
+	bytes, _ := arguments.Pack(
+		vCLn,
+		vCRn,
+		vC,
+		vD,
+		vy,
+		vepoch)
+	b128 := utils.NewBN128()
+	var statementHash = utils.Hash(hex.EncodeToString(bytes))
+	{
+		gv := make([]utils.Point, 0)
+		for _, CLn := range vCLn {
+			p := b128.UnSerialize(CLn[0], CLn[1])
+			gv = append(gv, p)
+		}
+		statement["CLn"] = NewGeneratorVector(gv)
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, CRn := range vCRn {
+			p := b128.UnSerialize(CRn[0], CRn[1])
+			gv = append(gv, p)
+		}
+		statement["CRn"] = NewGeneratorVector(gv)
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, C := range vC {
+			p := b128.UnSerialize(C[0], C[1])
+			gv = append(gv, p)
+		}
+		statement["C"] = NewGeneratorVector(gv)
+	}
+	{
+		statement["D"] = b128.UnSerialize(vD[0], vD[1])
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, y := range vy {
+			p := b128.UnSerialize(y[0], y[1])
+			gv = append(gv, p)
+		}
+		statement["y"] = NewGeneratorVector(gv)
+	}
+
+	{
+		vbTransfer := witness["bTransfer"].(uint)
+		witness["bTransfer"] = ebigint.ToNBigInt(big.NewInt(int64(vbTransfer))).ToRed(b128.Q())
+	}
+	{
+		vbDiff := witness["bDiff"].(uint)
+		witness["bDiff"] = ebigint.ToNBigInt(big.NewInt(int64(vbDiff))).ToRed(b128.Q())
+	}
+	nvBTransfer := witness["bTransfer"].(*ebigint.NBigInt)
+	nvBDiff := witness["bDiff"].(*ebigint.NBigInt)
+
+	t1 := big.NewInt(0).Lsh(nvBDiff.Int, 32)
+	var number = big.NewInt(0).Add(nvBTransfer.Int, t1)
+	splits := strings.Split(number.Text(2), "")
+	println("len splits = ", len(splits), "xx ", splits)
+	reversed := Reverse(splits)
+	nArray := make([]*ebigint.NBigInt, len(reversed))
+	for i, r := range reversed {
+		n, _ := big.NewInt(0).SetString(r, 2)
+		nArray[i] = ebigint.ToNBigInt(n).ToRed(b128.Q())
+	}
+	var aL = NewFieldVector(nArray)
+
+	t := ebigint.ToNBigInt(big.NewInt(1)).ToRed(b128.Q())
+	fq := bn128.NewFq(b128.Q().Number())
+	t = ebigint.ToNBigInt(fq.Neg(t.Int)).ToRed(b128.Q())
+	var aR = aL.Plus(t)
+	var alpha = b128.RanddomScalar()
+	proof.BA = z.params.Commit(alpha, aL, aR)
+
+	var vsL = make([]*ebigint.NBigInt, 0)
+	var vsR = make([]*ebigint.NBigInt, 0)
+	for i := 0; i < 64; i++ {
+		r1 := b128.RanddomScalar()
+		vsL = append(vsL, r1)
+		r2 := b128.RanddomScalar()
+		vsR = append(vsR, r2)
+	}
+	var sL = NewFieldVector(vsL)
+	var sR = NewFieldVector(vsR)
+	var rho = b128.RanddomScalar()
+	proof.BS = z.params.Commit(rho, sL, sR)
+
+	nvy := statement["y"].(*GeneratorVector)
+	var N = nvy.Length()
+	//if (N & (N-1)) {
+	//	throw "Size must be a power of 2!"
+	//}
+
+	var m = big.NewInt(int64(N)).BitLen() - 1
+	var r_A = b128.RanddomScalar()
+	var r_B = b128.RanddomScalar()
+
+	var pa = make([]*ebigint.NBigInt, 2*m)
+	for i := 0; i < 2*m; i++ {
+		pa[i] = b128.RanddomScalar()
+	}
+	var a = NewFieldVector(pa)
+
+}
