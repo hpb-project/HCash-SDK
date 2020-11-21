@@ -113,10 +113,10 @@ func NewZetherProver() ZetherProver {
 	}
 }
 
-func (z ZetherProver) RecursivePolynomials(plist []*ebigint.NBigInt, accum *Polynomial,
+func (z ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum *Polynomial,
 	a []*ebigint.NBigInt, b []*ebigint.NBigInt) {
 	if a == nil || len(a) == 0 {
-		plist = append(plist, accum.coefficients...)
+		plist = append(plist, accum.coefficients)
 		return
 	}
 	b128 := utils.NewBN128()
@@ -157,6 +157,7 @@ func Reverse(s []string) []string {
 func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness map[string]interface{}) *ZetherProof {
 	proof := &ZetherProof{}
 
+	bytes32_T, _ := abi.NewType("bytes32", "", nil)
 	bytes32_2ST, _ := abi.NewType("bytes32[2][]", "", nil)
 	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
 	uint256_T, _ := abi.NewType("uint256", "", nil)
@@ -292,4 +293,114 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 	}
 	var a = NewFieldVector(pa)
 
+	var b *FieldVector
+	{
+		vIndex := witness["index"].([]int)
+		v1 := big.NewInt(int64(vIndex[1])).Text(2)
+		v2 := big.NewInt(int64(vIndex[0])).Text(2)
+		nvindex := PaddingString(v1, m) + PaddingString(v2, m)
+
+		nsplits := strings.Split(nvindex, "")
+		nreversed := Reverse(nsplits)
+		nArray2 := make([]*ebigint.NBigInt, len(nreversed))
+		for i, r := range nreversed {
+			n, _ := big.NewInt(0).SetString(r, 2)
+			nArray2[i] = ebigint.ToNBigInt(n).ToRed(b128.Q())
+		}
+		b = NewFieldVector(nArray2)
+	}
+	var c = a.Hadamard(b.Times(ebigint.ToNBigInt(big.NewInt(2)).ToRed(b128.Q())).Negate().Plus(ebigint.ToNBigInt(big.NewInt(1)).ToRed(b128.Q())))
+	var d = a.Hadamard(a).Negate()
+	var e, f *FieldVector
+	{
+		av := a.GetVector()
+		evector := make([]*ebigint.NBigInt, 0)
+		evector = append(evector, ebigint.ToNBigInt(fq.Mul(av[0].Int, av[m].Int)).ToRed(av[0].GetRed()))
+		evector = append(evector, ebigint.ToNBigInt(fq.Mul(av[0].Int, av[m].Int)).ToRed(av[0].GetRed()))
+		e = NewFieldVector(evector)
+
+		bv := b.GetVector()
+		fvector := make([]*ebigint.NBigInt, 0)
+		fvector = append(fvector, av[bv[0].Int64()*int64(m)])
+		pd := bv[m].Int64() * int64(m)
+
+		fvector = append(fvector, ebigint.ToNBigInt(fq.Neg(av[pd].Int)).ToRed(av[pd].GetRed()))
+		f = NewFieldVector(fvector)
+	}
+
+	proof.A = z.params.Commit(r_A, a.Concat(d).Concat(e), nil)
+	proof.B = z.params.Commit(r_B, b.Concat(c).Concat(f), nil)
+
+	var v *ebigint.NBigInt
+	{
+		arguments = abi.Arguments{
+			{
+				Type: bytes32_T,
+			},
+			{
+				Type: bytes32_2T,
+			},
+			{
+				Type: bytes32_2T,
+			},
+			{
+				Type: bytes32_2T,
+			},
+			{
+				Type: bytes32_2T,
+			},
+		}
+		vBAx, vBAy := b128.Serialize(proof.BA)
+		vBSx, vBSy := b128.Serialize(proof.BS)
+		vAx, vAy := b128.Serialize(proof.A)
+		vBx, vBy := b128.Serialize(proof.B)
+		bytes, _ = arguments.Pack(
+			b128.Bytes(statementHash.Int),
+			[]string{vBAx, vBAy},
+			[]string{vBSx, vBSy},
+			[]string{vAx, vAy},
+			[]string{vBx, vBy},
+		)
+		v = utils.Hash(hex.EncodeToString(bytes))
+	}
+	var phi, chi, psi, omega = make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m)
+	for i := 0; i < m; i++ {
+		phi[i] = b128.RanddomScalar()
+		chi[i] = b128.RanddomScalar()
+		psi[i] = b128.RanddomScalar()
+		omega[i] = b128.RanddomScalar()
+	}
+	var P, Q = make([][]*ebigint.NBigInt, 0), make([][]*ebigint.NBigInt, 0)
+	z.RecursivePolynomials(P, NewPolynomial(nil), a.GetVector()[0:m], b.GetVector()[0:m])
+	z.RecursivePolynomials(Q, NewPolynomial(nil), a.GetVector()[m:], b.GetVector()[m:])
+
+	NP, NQ := make([]*FieldVector, m), make([]*FieldVector, m)
+	{
+
+		for k := 0; k < m; k++ {
+			tmpPv := make([]*ebigint.NBigInt, 0)
+			tmpQv := make([]*ebigint.NBigInt, 0)
+			for _, pi := range P {
+				tmpPv = append(tmpPv, pi[k])
+			}
+			for _, qi := range Q {
+				tmpQv = append(tmpQv, qi[k])
+			}
+			NP[k] = NewFieldVector(tmpPv)
+			NQ[k] = NewFieldVector(tmpQv)
+		}
+	}
+
+}
+
+func PaddingString(in string, padding int) string {
+	var out = in
+	for {
+		if len(out)%padding != 0 {
+			out = "0" + out
+		} else {
+			break
+		}
+	}
+	return out
 }
