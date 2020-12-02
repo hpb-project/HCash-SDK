@@ -391,6 +391,115 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		}
 	}
 
+	{
+		//proof.CLnG = Array.from({ length: m }).map((_, k) => statement['CLn'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(phi[k])));
+		t_vCLn := statement["CLn"].(*GeneratorVector)
+		t_vy := statement["y"].(*GeneratorVector)
+		t_vIndex := witness["index"].([]int)
+		proof.CLnG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			a1 := t_vCLn.Commit(NP[k])
+			b := t_vy.GetVector()[t_vIndex[0]]
+			c := phi[k]
+			a2 := b128.G1.MulScalar(b, c.Int)
+			proof.CLnG[k] = b128.G1.Add(a1, a2)
+		}
+
+		//proof.CRnG = Array.from({ length: m }).map((_, k) => statement['CRn'].commit(P[k]).add(params.getG().mul(phi[k])));
+		t_vCRn := statement["CRn"].(*GeneratorVector)
+		proof.CRnG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			a1 := t_vCRn.Commit(NP[k])
+			b := z.params.GetG()
+			c := phi[k]
+			a2 := b128.G1.MulScalar(b, c.Int)
+			proof.CRnG[k] = b128.G1.Add(a1, a2)
+		}
+		//proof.C_0G = Array.from({ length: m }).map((_, k) => statement['C'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(chi[k])));
+		t_vC := statement["C"].(*GeneratorVector)
+		proof.C_0G = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			a1 := t_vC.Commit(NP[k])
+			b := t_vy.GetVector()[t_vIndex[0]]
+			c := chi[k]
+			a2 := b128.G1.MulScalar(b, c.Int)
+			proof.C_0G[k] = b128.G1.Add(a1, a2)
+		}
+
+		//proof.DG = Array.from({ length: m }).map((_, k) => params.getG().mul(chi[k]));
+		proof.DG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			b := z.params.GetG()
+			c := chi[k]
+			proof.DG[k] = b128.G1.MulScalar(b, c.Int)
+		}
+
+		//proof.y_0G = Array.from({ length: m }).map((_, k) => statement['y'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(psi[k])));
+		proof.y_0G = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			a1 := t_vy.Commit(NP[k])
+			b := t_vy.GetVector()[t_vIndex[0]]
+			c := psi[k]
+			a2 := b128.G1.MulScalar(b, c.Int)
+			proof.DG[k] = b128.G1.Add(a1, a2)
+		}
+
+		//proof.gG = Array.from({ length: m }).map((_, k) => params.getG().mul(psi[k]));
+		proof.gG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			b := z.params.GetG()
+			c := psi[k]
+			proof.gG[k] = b128.G1.MulScalar(b, c.Int)
+		}
+
+		//proof.C_XG = Array.from({ length: m }).map((_, k) => statement['D'].mul(omega[k]));
+		t_vD := statement["D"].(utils.Point)
+		proof.C_XG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			a := omega[k]
+			proof.C_XG[k] = b128.G1.MulScalar(t_vD, a.Int)
+		}
+
+		//proof.y_XG = Array.from({ length: m }).map((_, k) => params.getG().mul(omega[k]));
+		proof.y_XG = make([]utils.Point, m)
+		for k := 0; k < m; k++ {
+			b := z.params.GetG()
+			c := omega[k]
+			proof.y_XG[k] = b128.G1.MulScalar(b, c.Int)
+		}
+	}
+	var vPow = ebigint.ToNBigInt(big.NewInt(1)).ToRed(b128.Q())
+	t_vBTransfer := witness["bTransfer"].(*ebigint.NBigInt)
+	for i := 0; i < N; i++ {
+		a1 := z.params.GetG()
+		a2 := fq.Mul(t_vBTransfer.Int, vPow.Int)
+
+		var temp = b128.G1.MulScalar(a1, a2)
+		var poly = NQ
+		if i%2 == 0 {
+			poly = NP
+		}
+		//proof.C_XG = proof.C_XG.map((C_XG_k, k) => C_XG_k.add(temp.mul(poly[k].getVector()[(witness['index'][0] + N - (i - i % 2)) % N].redNeg().redAdd(poly[k].getVector()[(witness['index'][1] + N - (i - i % 2)) % N]))));
+		//proof.C_XG = proof.C_XG.map((C_XG_k, k) => C_XG_k.add(temp.mul(poly[k].getVector()[idx1].redNeg().redAdd(poly[k].getVector()[idx2]))));
+		t_vIndex := witness["index"].([]int)
+		n_C_XG := make([]utils.Point, len(proof.C_XG))
+		for k, C_XG_k := range proof.C_XG {
+			idx1 := (t_vIndex[0] + N - (i - i%2)) % N
+			idx2 := (t_vIndex[1] + N - (i - i%2)) % N
+			//C_XG_k.add(temp.mul(poly[k].getVector()[idx1].redNeg().redAdd(poly[k].getVector()[idx2])))
+			b1 := poly[k].GetVector()[idx1]
+			b2 := poly[k].GetVector()[idx2]
+			c1 := fq.Neg(b1.Int)
+			c2 := fq.Add(c1, b2.Int)
+			d := b128.G1.MulScalar(temp, c2)
+			n_C_XG[k] = b128.G1.Add(C_XG_k, d)
+		}
+		proof.C_XG = n_C_XG
+		if i != 0 {
+			vPow = ebigint.ToNBigInt(fq.Mul(vPow.Int, v.Int)).ToRed(b128.Q())
+		}
+	}
+
 }
 
 func PaddingString(in string, padding int) string {
