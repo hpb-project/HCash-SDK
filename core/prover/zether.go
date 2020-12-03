@@ -499,6 +499,132 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 			vPow = ebigint.ToNBigInt(fq.Mul(vPow.Int, v.Int)).ToRed(b128.Q())
 		}
 	}
+	var w *ebigint.NBigInt
+	{
+		{
+			arguments = abi.Arguments{
+				{
+					Type: bytes32_T,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+				{
+					Type: bytes32_2ST,
+				},
+			}
+			//proof.CLnG.map(bn128.serialize),
+			v_CLnG := make([][2]string, len(proof.CLnG))
+			for i := 0; i < len(v_CLnG); i++ {
+				x, y := b128.Serialize(proof.CLnG[i])
+				v_CLnG[i] = [2]string{x, y}
+			}
+			//proof.CRnG.map(bn128.serialize),
+			v_CRnG := make([][2]string, len(proof.CRnG))
+			for i := 0; i < len(v_CRnG); i++ {
+				x, y := b128.Serialize(proof.CRnG[i])
+				v_CRnG[i] = [2]string{x, y}
+			}
+			//proof.C_0G.map(bn128.serialize),
+			v_C_0G := make([][2]string, len(proof.C_0G))
+			for i := 0; i < len(v_C_0G); i++ {
+				x, y := b128.Serialize(proof.C_0G[i])
+				v_C_0G[i] = [2]string{x, y}
+			}
+			//proof.DG.map(bn128.serialize),
+			v_DG := make([][2]string, len(proof.DG))
+			for i := 0; i < len(v_DG); i++ {
+				x, y := b128.Serialize(proof.DG[i])
+				v_DG[i] = [2]string{x, y}
+			}
+			//proof.y_0G.map(bn128.serialize),
+			v_y_0G := make([][2]string, len(proof.y_0G))
+			for i := 0; i < len(v_y_0G); i++ {
+				x, y := b128.Serialize(proof.y_0G[i])
+				v_y_0G[i] = [2]string{x, y}
+			}
+			//proof.gG.map(bn128.serialize),
+			v_gG := make([][2]string, len(proof.gG))
+			for i := 0; i < len(v_gG); i++ {
+				x, y := b128.Serialize(proof.gG[i])
+				v_gG[i] = [2]string{x, y}
+			}
+			//proof.C_XG.map(bn128.serialize),
+			v_C_XG := make([][2]string, len(proof.C_XG))
+			for i := 0; i < len(v_C_XG); i++ {
+				x, y := b128.Serialize(proof.C_XG[i])
+				v_C_XG[i] = [2]string{x, y}
+			}
+			//proof.y_XG.map(bn128.serialize),
+			v_y_XG := make([][2]string, len(proof.y_XG))
+			for i := 0; i < len(v_y_XG); i++ {
+				x, y := b128.Serialize(proof.y_XG[i])
+				v_y_XG[i] = [2]string{x, y}
+			}
+
+			bytes, _ = arguments.Pack(
+				b128.Bytes(v.Int),
+				v_CLnG,
+				v_CRnG,
+				v_C_0G,
+				v_DG,
+				v_y_0G,
+				v_gG,
+				v_C_XG,
+				v_y_XG,
+			)
+			w = utils.Hash(hex.EncodeToString(bytes))
+		}
+		proof.f = b.Times(w).Add(a)
+		{
+			a1 := fq.Mul(r_B.Int, w.Int)
+			a2 := fq.Add(a1, r_A.Int)
+			proof.z_A = ebigint.ToNBigInt(a2).ToRed(w.GetRed())
+		}
+		var y *ebigint.NBigInt
+		{
+			arguments = abi.Arguments{
+				{
+					Type: bytes32_T,
+				},
+			}
+
+			bytes, _ = arguments.Pack(
+				b128.Bytes(w.Int),
+			)
+			y = utils.Hash(hex.EncodeToString(bytes))
+		}
+		var vys = make([]*ebigint.NBigInt, 0)
+		{
+			vys = append(vys, ebigint.NewNBigInt(1).ToRed(b128.Q()))
+			for i := 1; i < 64; i++ {
+				p := vys[i-1]
+				nv := ebigint.ToNBigInt(fq.Mul(p.Int, y.Int)).ToRed(b128.Q())
+				vys = append(vys, nv)
+			}
+		}
+		ys := NewFieldVector(vys)
+		z := utils.Hash(b128.Bytes(y.Int))
+
+	}
 
 }
 

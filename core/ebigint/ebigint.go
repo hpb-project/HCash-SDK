@@ -11,6 +11,10 @@ func ToNBigInt(b *big.Int) *NBigInt {
 	return &NBigInt{b, nil}
 }
 
+func NewNBigInt(v int64) *NBigInt {
+	return &NBigInt{big.NewInt(v), nil}
+}
+
 func newRed(b *big.Int) *Red {
 	return &Red{
 		m: b,
