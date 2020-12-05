@@ -431,6 +431,17 @@ func (c *Convolver) FFT_Scalar(input *FieldVector, inverse bool) *FieldVector {
 	return result
 }
 
+func (c *Convolver) Convolution_Point(exponent *FieldVector, base *GeneratorVector) *GeneratorVector {
+	b128 := utils.NewBN128()
+	fq := bn128.NewFq(b128.Q().Number())
+	size := base.Length()
+	temp := c.FFT_Point(base, false).Hadamard(c.FFT_Scalar(exponent.Flip(), false))
+
+	t := ebigint.ToNBigInt(big.NewInt(2)).ToRed(b128.Q())
+	t = ebigint.ToNBigInt(fq.Inverse(t.Int)).ToRed(b128.Q())
+	return c.FFT_Point(temp.Slice(0, size/2).Add(temp.Slice(size/2, size)).Times(t), true)
+}
+
 func (c *Convolver) Convolution_Scalar(exponent *FieldVector, base *FieldVector) *FieldVector {
 	b128 := utils.NewBN128()
 	fq := bn128.NewFq(b128.Q().Number())
@@ -484,7 +495,7 @@ type FieldVectorPolynomial struct {
 	coefficients []*FieldVector
 }
 
-func NewFieldVectorPolynomial(coefficients []*FieldVector) *FieldVectorPolynomial {
+func NewFieldVectorPolynomial(coefficients ...*FieldVector) *FieldVectorPolynomial {
 	fvp := &FieldVectorPolynomial{
 		coefficients: coefficients,
 	}

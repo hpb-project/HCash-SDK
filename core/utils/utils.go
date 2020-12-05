@@ -47,7 +47,7 @@ func Hash(str string) *ebigint.NBigInt {
 
 func Sign(address string, keypair []string) []string {
 	bn128 := NewBN128()
-	var k, _ = bn128.RanddomScalar()
+	var k = bn128.RanddomScalar()
 	K := bn128.G1.MulScalar(bn128.G1.G, k.Int)
 	sx, sy := bn128.Serialize(K)
 
@@ -84,7 +84,7 @@ func Sign(address string, keypair []string) []string {
 
 func CreateAccount() (string, string, string) {
 	b128 := NewBN128()
-	x, _ := b128.RanddomScalar()
+	x := b128.RanddomScalar()
 	p := b128.G1.MulScalar(b128.G1.G, x.Int)
 	priv := b128.Bytes(x.Int)
 	pub_x, pub_y := b128.Serialize(Point{p[0], p[1], p[2]})

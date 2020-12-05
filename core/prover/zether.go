@@ -6,6 +6,7 @@ import (
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"github.com/hpb-project/HCash-SDK/core/utils"
 	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
+	"math"
 	"math/big"
 	"sort"
 	"strings"
@@ -113,7 +114,7 @@ func NewZetherProver() ZetherProver {
 	}
 }
 
-func (z ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum *Polynomial,
+func (this ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum *Polynomial,
 	a []*ebigint.NBigInt, b []*ebigint.NBigInt) {
 	if a == nil || len(a) == 0 {
 		plist = append(plist, accum.coefficients)
@@ -140,8 +141,8 @@ func (z ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum *Po
 	coefficients_2 = append(coefficients_2, bTop)
 	var right = NewPolynomial(coefficients_2)
 
-	z.RecursivePolynomials(plist, accum.Mul(left), a, b)
-	z.RecursivePolynomials(plist, accum.Mul(right), a, b)
+	this.RecursivePolynomials(plist, accum.Mul(left), a, b)
+	this.RecursivePolynomials(plist, accum.Mul(right), a, b)
 
 	a = append(a, aTop)
 	b = append(b, bTop)
@@ -154,7 +155,7 @@ func Reverse(s []string) []string {
 	return s
 }
 
-func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness map[string]interface{}) *ZetherProof {
+func (this ZetherProver) GenerateProof(statement map[string]interface{}, witness map[string]interface{}) *ZetherProof {
 	proof := &ZetherProof{}
 
 	bytes32_T, _ := abi.NewType("bytes32", "", nil)
@@ -262,7 +263,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 	t = ebigint.ToNBigInt(fq.Neg(t.Int)).ToRed(b128.Q())
 	var aR = aL.Plus(t)
 	var alpha = b128.RanddomScalar()
-	proof.BA = z.params.Commit(alpha, aL, aR)
+	proof.BA = this.params.Commit(alpha, aL, aR)
 
 	var vsL = make([]*ebigint.NBigInt, 0)
 	var vsR = make([]*ebigint.NBigInt, 0)
@@ -275,7 +276,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 	var sL = NewFieldVector(vsL)
 	var sR = NewFieldVector(vsR)
 	var rho = b128.RanddomScalar()
-	proof.BS = z.params.Commit(rho, sL, sR)
+	proof.BS = this.params.Commit(rho, sL, sR)
 
 	nvy := statement["y"].(*GeneratorVector)
 	var N = nvy.Length()
@@ -328,8 +329,8 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		f = NewFieldVector(fvector)
 	}
 
-	proof.A = z.params.Commit(r_A, a.Concat(d).Concat(e), nil)
-	proof.B = z.params.Commit(r_B, b.Concat(c).Concat(f), nil)
+	proof.A = this.params.Commit(r_A, a.Concat(d).Concat(e), nil)
+	proof.B = this.params.Commit(r_B, b.Concat(c).Concat(f), nil)
 
 	var v *ebigint.NBigInt
 	{
@@ -371,8 +372,8 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		omega[i] = b128.RanddomScalar()
 	}
 	var P, Q = make([][]*ebigint.NBigInt, 0), make([][]*ebigint.NBigInt, 0)
-	z.RecursivePolynomials(P, NewPolynomial(nil), a.GetVector()[0:m], b.GetVector()[0:m])
-	z.RecursivePolynomials(Q, NewPolynomial(nil), a.GetVector()[m:], b.GetVector()[m:])
+	this.RecursivePolynomials(P, NewPolynomial(nil), a.GetVector()[0:m], b.GetVector()[0:m])
+	this.RecursivePolynomials(Q, NewPolynomial(nil), a.GetVector()[m:], b.GetVector()[m:])
 
 	NP, NQ := make([]*FieldVector, m), make([]*FieldVector, m)
 	{
@@ -410,7 +411,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		proof.CRnG = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
 			a1 := t_vCRn.Commit(NP[k])
-			b := z.params.GetG()
+			b := this.params.GetG()
 			c := phi[k]
 			a2 := b128.G1.MulScalar(b, c.Int)
 			proof.CRnG[k] = b128.G1.Add(a1, a2)
@@ -429,7 +430,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		//proof.DG = Array.from({ length: m }).map((_, k) => params.getG().mul(chi[k]));
 		proof.DG = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			b := z.params.GetG()
+			b := this.params.GetG()
 			c := chi[k]
 			proof.DG[k] = b128.G1.MulScalar(b, c.Int)
 		}
@@ -447,7 +448,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		//proof.gG = Array.from({ length: m }).map((_, k) => params.getG().mul(psi[k]));
 		proof.gG = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			b := z.params.GetG()
+			b := this.params.GetG()
 			c := psi[k]
 			proof.gG[k] = b128.G1.MulScalar(b, c.Int)
 		}
@@ -463,7 +464,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		//proof.y_XG = Array.from({ length: m }).map((_, k) => params.getG().mul(omega[k]));
 		proof.y_XG = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			b := z.params.GetG()
+			b := this.params.GetG()
 			c := omega[k]
 			proof.y_XG[k] = b128.G1.MulScalar(b, c.Int)
 		}
@@ -471,7 +472,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 	var vPow = ebigint.ToNBigInt(big.NewInt(1)).ToRed(b128.Q())
 	t_vBTransfer := witness["bTransfer"].(*ebigint.NBigInt)
 	for i := 0; i < N; i++ {
-		a1 := z.params.GetG()
+		a1 := this.params.GetG()
 		a2 := fq.Mul(t_vBTransfer.Int, vPow.Int)
 
 		var temp = b128.G1.MulScalar(a1, a2)
@@ -593,6 +594,7 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 			)
 			w = utils.Hash(hex.EncodeToString(bytes))
 		}
+	}
 		proof.f = b.Times(w).Add(a)
 		{
 			a1 := fq.Mul(r_B.Int, w.Int)
@@ -623,8 +625,210 @@ func (z ZetherProver) GenerateProof(statement map[string]interface{}, witness ma
 		}
 		ys := NewFieldVector(vys)
 		z := utils.Hash(b128.Bytes(y.Int))
+		zs := make([]*ebigint.NBigInt, 0)
+		{
+			zs = append(zs, ebigint.ToNBigInt(fq.Exp(z.Int,big.NewInt(2))).ToRed(z.GetRed()))
+			zs = append(zs, ebigint.ToNBigInt(fq.Exp(z.Int,big.NewInt(3))).ToRed(z.GetRed()))
+		}
+		var twos = make([]*ebigint.NBigInt, 0)
+		var v_twoTimesZs = make([]*ebigint.NBigInt,0)
+		{
+			twos = append(twos, ebigint.NewNBigInt(1).ToRed(b128.Q()))
+			for i:=1; i < 32; i++ {
+				a1 := twos[i-1]
+				a2 := big.NewInt(2)
 
-	}
+				b := fq.Mul(a1.Int, a2)
+				twos = append(twos, ebigint.ToNBigInt(b).ToRed(a1.GetRed()))
+			}
+
+			for i:=0; i < 2; i++ {
+				for j:=0; j < 32; j++ {
+					a1 := zs[i]
+					a2 := twos[j]
+					p  := fq.Mul(a1.Int, a2.Int)
+					v_twoTimesZs = append(v_twoTimesZs, ebigint.ToNBigInt(p).ToRed(a1.GetRed()))
+				}
+			}
+		}
+		twoTimesZs := NewFieldVector(v_twoTimesZs)
+		nz := ebigint.ToNBigInt(fq.Neg(z.Int)).ToRed(z.GetRed())
+		var lPoly = NewFieldVectorPolynomial(aL.Plus(nz), sL)
+		var rPoly = NewFieldVectorPolynomial(ys.Hadamard(aR.Plus(z)).Add(twoTimesZs), sR.Hadamard(ys))
+		var tPolyCoefficients = lPoly.InnerProduct(rPoly)
+		var polyCommitment = NewPolyCommitment(*this.params, tPolyCoefficients)
+
+		proof.tCommits = NewGeneratorVector(polyCommitment.GetCommitments())
+
+		var x *ebigint.NBigInt
+		{
+			arguments = abi.Arguments{
+				{
+					Type: bytes32_T,
+				},
+				{
+					Type: bytes32_2T,
+				},
+				{
+					Type: bytes32_2T,
+				},
+			}
+			vt := polyCommitment.GetCommitments()
+			vvt := make([][2]string,0)
+			for i:=0; i < len(vt); i++ {
+				x,y := b128.Serialize(vt[i])
+				vvt = append(vvt, [2]string{x,y})
+			}
+			bytes, _ = arguments.Pack(
+				b128.Bytes(z.Int),
+				vvt[0],
+				vvt[1],
+			)
+			x = utils.Hash(hex.EncodeToString(bytes))
+		}
+		var evalCommit = polyCommitment.Evaluate(x)
+		proof.tHat = evalCommit.GetX()
+		var tauX = evalCommit.GetR()
+		{
+			a1 := fq.Mul(rho.Int, x.Int)
+			proof.mu = ebigint.ToNBigInt(fq.Add(alpha.Int, a1)).ToRed(alpha.GetRed())
+		}
+		var CRnR = b128.Zero()
+		var y_0R = b128.Zero()
+		var y_XR = b128.Zero()
+		var DR   = b128.Zero()
+		var gR   = b128.Zero()
+		var p,q *FieldVector
+		{
+			v_p := make([]*ebigint.NBigInt,N)
+			v_q := make([]*ebigint.NBigInt,N)
+			for i:=0; i < N; i++ {
+				v_p[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
+				v_q[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
+			}
+			p = NewFieldVector(v_p)
+			q = NewFieldVector(v_q)
+		}
+		var wPow = ebigint.NewNBigInt(1).ToRed(b128.Q())
+		{
+			for k:=0; k < m; k++ {
+				{//CRnR = CRnR.add(params.getG().mul(phi[k].redNeg().redMul(wPow)));
+					a1 := fq.Neg(phi[k].Int)
+					a2 := fq.Mul(a1, wPow.Int)
+					a3 := b128.G1.MulScalar(this.params.GetG(), a2)
+					CRnR = b128.G1.Add(CRnR, a3)
+				}
+				{//DR = DR.add(params.getG().mul(chi[k].redNeg().redMul(wPow)));
+					a1 := fq.Neg(chi[k].Int)
+					a2 := fq.Mul(a1, wPow.Int)
+					a3 := b128.G1.MulScalar(this.params.GetG(), a2)
+					DR = b128.G1.Add(DR, a3)
+				}
+				{//y_0R = y_0R.add(statement['y'].getVector()[witness['index'][0]].mul(psi[k].redNeg().redMul(wPow)));
+					t_vy := statement["y"].(*GeneratorVector)
+					t_vIndex := witness["index"].([]int)
+					a1 := t_vy.GetVector()[t_vIndex[0]]
+					a2 := fq.Neg(psi[k].Int)
+					a3 := fq.Mul(a2, wPow.Int)
+					a4 := b128.G1.MulScalar(a1, a3)
+					y_0R = b128.G1.Add(y_0R, a4)
+				}
+				{//gR = gR.add(params.getG().mul(psi[k].redNeg().redMul(wPow)));
+					a1 := fq.Neg(psi[k].Int)
+					a2 := fq.Mul(a1, wPow.Int)
+					a3 := b128.G1.MulScalar(this.params.GetG(), a2)
+					gR = b128.G1.Add(gR, a3)
+				}
+				{//y_XR = y_XR.add(proof.y_XG[k].mul(wPow.neg()));
+					a1 := proof.y_XG[k]
+					a2 := wPow.Neg(wPow.Int)
+					a3 := b128.G1.MulScalar(a1, a2)
+					y_XR = b128.G1.Add(y_XR, a3)
+				}
+				p = p.Add(NP[k].Times(wPow))
+				q = q.Add(NQ[k].Times(wPow))
+				wPow = ebigint.ToNBigInt(fq.Mul(wPow.Int, w.Int)).ToRed(wPow.GetRed())
+			}
+			{//CRnR = CRnR.add(statement['CRn'].getVector()[witness['index'][0]].mul(wPow));
+				t_vCRn := statement["CRn"].(*GeneratorVector)
+				t_vIndex := witness["index"].([]int)
+				a1 := t_vCRn.GetVector()[t_vIndex[0]]
+				a2 := b128.G1.MulScalar(a1, wPow.Int)
+				CRnR = b128.G1.Add(CRnR, a2)
+			}
+			{//y_0R = y_0R.add(statement['y'].getVector()[witness['index'][0]].mul(wPow));
+				t_vy := statement["y"].(*GeneratorVector)
+				t_vIndex := witness["index"].([]int)
+				a1 := t_vy.GetVector()[t_vIndex[0]]
+				a2 := b128.G1.MulScalar(a1,wPow.Int)
+				y_0R = b128.G1.Add(y_0R, a2)
+			}
+			{//DR = DR.add(statement['D'].mul(wPow));
+				t_vD := statement["D"].(utils.Point)
+				a1 := b128.G1.MulScalar(t_vD, wPow.Int)
+				DR = b128.G1.Add(DR,a1)
+			}
+			{//gR = gR.add(params.getG().mul(wPow));
+				a1 := this.params.GetG()
+				a2 := b128.G1.MulScalar(a1, wPow.Int)
+				gR = b128.G1.Add(gR, a2)
+			}
+			{
+				//p = p.add(new FieldVector(Array.from({ length: N }).map((_, i) => i == witness['index'][0] ? wPow : new BN().toRed(bn128.q))));
+				vtp := make([]*ebigint.NBigInt, N)
+				t_vIndex := witness["index"].([]int)
+				for i:=0; i < N; i++ {
+					if i==t_vIndex[0] {
+						vtp[i] = wPow
+					} else {
+						vtp[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
+					}
+				}
+				tp := NewFieldVector(vtp)
+				p = p.Add(tp)
+				//q = q.add(new FieldVector(Array.from({ length: N }).map((_, i) => i == witness['index'][1] ? wPow : new BN().toRed(bn128.q))));
+				vtq := make([]*ebigint.NBigInt, N)
+				for i:=0; i < N; i++ {
+					if i==t_vIndex[1] {
+						vtq[i] = wPow
+					} else {
+						vtq[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
+					}
+				}
+				tq := NewFieldVector(vtq)
+				q = q.Add(tq)
+			}
+		}
+		{
+			t_vy := statement["y"].(*GeneratorVector)
+			var convolver = NewConvolver()
+			var y_p = convolver.Convolution_Point(p,t_vy)
+			var y_q = convolver.Convolution_Point(q,t_vy)
+			vPow = ebigint.NewNBigInt(1).ToRed(b128.Q())
+			for i:=0; i < N; i++ {
+				var y_poly *GeneratorVector
+				if i%2 != 0 {
+					y_poly = y_q
+				} else {
+					y_poly = y_p
+				}
+				idx := int(math.Floor(float64(i)/2))
+				a1 := y_poly.GetVector()[idx]
+				a2 := b128.G1.MulScalar(a1, vPow.Int)
+				y_XR = b128.G1.Add(y_XR, a2)
+				if i > 0 {
+					vPow = ebigint.ToNBigInt(fq.Mul(vPow.Int,v.Int)).ToRed(vPow.GetRed())
+				}
+			}
+		}
+		var k_sk = b128.RanddomScalar()
+		var k_r  = b128.RanddomScalar()
+		var k_b  = b128.RanddomScalar()
+		var k_tau= b128.RanddomScalar()
+
+		var A_y = b128.G1.MulScalar(gR, k_sk.Int)
+		var A_D = b128.G1.MulScalar(this.params.GetG(), k_r.Int)
+		var A_b = b128.G1.
 
 }
 
