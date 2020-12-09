@@ -8,7 +8,6 @@ import (
 	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
 	"math"
 	"math/big"
-	"sort"
 	"strings"
 )
 

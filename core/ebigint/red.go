@@ -3,16 +3,16 @@ package ebigint
 import "math/big"
 
 type Red struct {
-	m *big.Int
+	*big.Int
 }
 
 func (this *Red) ConvertTo(b *NBigInt) *NBigInt {
-	var r = this.m.Mod(this.m, b.Int)
+	var r = this.Mod(this.Int, b.Int)
 	return ToNBigInt(r)
 }
 
 func (this *Red) Number() *big.Int {
-	return this.m
+	return this.Int
 }
 
 //func (this *Red) IMod(b *NBigInt) *NBigInt {
