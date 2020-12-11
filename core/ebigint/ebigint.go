@@ -19,12 +19,8 @@ func NewNBigInt(v int64) *NBigInt {
 	return &NBigInt{big.NewInt(v), nil, nil}
 }
 
-func newRed(b *big.Int) *Red {
-	return &Red{b}
-}
-
 func (this *NBigInt) Red(m *big.Int) *Red {
-	return newRed(m)
+	return NewRed(m)
 }
 
 func (this *NBigInt) ForceRed(r *Red) *NBigInt {
