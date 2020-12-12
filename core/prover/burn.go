@@ -173,7 +173,7 @@ func (burn BurnProver) GenerateProof(statement map[string]interface{}, witness m
 	var b2 = ebigint.NewNBigInt(2)
 	var bn2 = ebigint.NewNBigInt(2).ToRed(b128.Q())
 	var vzs = make([]*ebigint.NBigInt, 0)
-	var zs = z.RedPow(b2) //todo:RedPow
+	var zs = fq.Exp(z,b2)
 	vzs = append(vzs, zs) 
 	var vtwos = make([]*ebigint.NBigInt, 0)
 	vtwos = append(vtwos, bn1)
@@ -311,7 +311,6 @@ func (burn BurnProver) GenerateProof(statement map[string]interface{}, witness m
 	hcommitexp := hPrimes.Commit(hExp)
 	var P = b128.G1.Add(proofsum,hcommitexp)
 
-	//P = P.add(burnh.mul(proof.mu.redNeg()));
 	muneg :=  ebigint.ToNBigInt(fq.Neg(proof.mu)).ToRed(b128.Q()) 
 	burnmu := b128.G1.MulScalar(burnh,muneg)
 	P = b128.G1.Add(P,burnmu)
@@ -329,5 +328,4 @@ func (burn BurnProver) GenerateProof(statement map[string]interface{}, witness m
 	P = b128.G1.Add(P,b128.G1.MulScalar(u_x,proof.tHat))
 	var primeBase = NewGeneratorParams(u_x,gs,hPrimes)
 	proof.ipProof = generateProof(primeBase,P,lPoly,rPoly,[]utils.Point{}, []utils.Point{},o)
-	
 }
