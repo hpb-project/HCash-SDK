@@ -21,9 +21,14 @@ func (p Point) Mul(o *ebigint.NBigInt) Point {
 	b128 := NewBN128()
 	return b128.G1.MulScalar(p, o.Int)
 }
+
 func (p Point) Add(o Point) Point {
 	b128 := NewBN128()
 	return b128.G1.Add(p, o)
+}
+func (p Point) Equal(o Point) bool {
+	b128 := NewBN128()
+	return b128.G1.Equal(p, o)
 }
 
 func NewPoint(bn *BN128, d1, d2 *big.Int) Point {
@@ -56,6 +61,10 @@ func NewBN128() *BN128 {
 	b.G1 = bn128.NewG1(bn128.NewFq(b.p), gG1)
 
 	return b
+}
+
+func (b *BN128) CurveG() Point {
+	return b.G1.G
 }
 
 func (b *BN128) CurveRed() *ebigint.Red {

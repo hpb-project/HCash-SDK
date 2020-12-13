@@ -35,8 +35,3 @@ func (p Publickey) String() string {
 	d, _ := json.Marshal(p)
 	return string(d)
 }
-
-type Account struct {
-	X string    `json:"x"`
-	Y Publickey `json:"y"`
-}
