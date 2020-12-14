@@ -99,12 +99,22 @@ func generateProof(base *GeneratorParams, P utils.Point, as *FieldVector, bs *Fi
 type InnerProductProver struct {
 }
 
-func (t InnerProductProver) GenerateProof(statement map[string]interface{},
-	witness map[string]interface{}, salt *ebigint.NBigInt) *InnerProductProof {
+type InnerProduct_witness struct {
+	L *FieldVector
+	R *FieldVector
+}
 
-	base := statement["primeBase"].(*GeneratorParams)
-	P := statement["P"].(utils.Point)
-	l := witness["l"].(*FieldVector)
-	r := witness["r"].(*FieldVector)
+type InnerProduct_statement struct {
+	PrimeBase *GeneratorParams
+	P         utils.Point
+}
+
+func (t InnerProductProver) GenerateProof(statement InnerProduct_statement,
+	witness InnerProduct_witness, salt *ebigint.NBigInt) *InnerProductProof {
+
+	base := statement.PrimeBase
+	P := statement.P
+	l := witness.L
+	r := witness.R
 	return generateProof(base, P, l, r, []utils.Point{}, []utils.Point{}, salt)
 }

@@ -18,10 +18,6 @@ type GeneratorParams struct {
 	hs *GeneratorVector
 }
 
-var (
-	b128 = utils.NewBN128()
-)
-
 func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParams {
 	gp := &GeneratorParams{}
 	gp.g = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
