@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
+	"github.com/hpb-project/HCash-SDK/core/types"
 	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
 	"math/big"
 )
@@ -29,6 +30,11 @@ func (p Point) Add(o Point) Point {
 func (p Point) Equal(o Point) bool {
 	b128 := NewBN128()
 	return b128.G1.Equal(p, o)
+}
+
+func (p Point) Neg() Point {
+	b128 := NewBN128()
+	return b128.G1.Neg(p)
 }
 
 func NewPoint(bn *BN128, d1, d2 *big.Int) Point {
@@ -103,15 +109,22 @@ func (b *BN128) B_MAX() int {
 	return B_MAX
 }
 
-func (b *BN128) Serialize(p Point) (string, string) {
+func (b *BN128) Serialize(p Point) types.Publickey {
+	var x, y string
 	if p[0] == nil && p[1] == nil {
-		return "0x0000000000000000000000000000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000000000000000000000000000"
+		x = "0x0000000000000000000000000000000000000000000000000000000000000000"
+		y = "0x0000000000000000000000000000000000000000000000000000000000000000"
+	} else {
+		x = b.Bytes(p[0])
+		y = b.Bytes(p[1])
 	}
-	return b.Bytes(p[0]), b.Bytes(p[1])
+	return types.Publickey{x, y}
 }
 
-func (b *BN128) UnSerialize(x, y string) Point {
-	if x == "0000000000000000000000000000000000000000000000000000000000000000" && y == "0000000000000000000000000000000000000000000000000000000000000000" {
+func (b *BN128) UnSerialize(pubkey types.Publickey) Point {
+	x := pubkey.GX()
+	y := pubkey.GY()
+	if x == "0x0000000000000000000000000000000000000000000000000000000000000000" && y == "0x0000000000000000000000000000000000000000000000000000000000000000" {
 		return b.Zero()
 	} else {
 		d1, _ := big.NewInt(0).SetString(x[2:], 16)
@@ -120,7 +133,18 @@ func (b *BN128) UnSerialize(x, y string) Point {
 	}
 }
 
+//
+//func (b *BN128) UnSerialize(x, y string) Point {
+//	if x == "0000000000000000000000000000000000000000000000000000000000000000" && y == "0000000000000000000000000000000000000000000000000000000000000000" {
+//		return b.Zero()
+//	} else {
+//		d1, _ := big.NewInt(0).SetString(x[2:], 16)
+//		d2, _ := big.NewInt(0).SetString(y[2:], 16)
+//		return NewPoint(b, d1, d2)
+//	}
+//}
+
 func (b *BN128) Representation(p Point) string {
-	x, y := b.Serialize(p)
-	return x + y[2:]
+	key := b.Serialize(p)
+	return "0x" + key.GX()[2:] + key.GY()[2:]
 }

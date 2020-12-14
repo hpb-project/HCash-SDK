@@ -20,8 +20,8 @@ var (
 )
 
 func ReadBalance(CL, CR types.Publickey, x *ebigint.NBigInt) int {
-	nCL := b128.UnSerialize(CL.GX(), CL.GY())
-	nCR := b128.UnSerialize(CR.GX(), CR.GY())
+	nCL := b128.UnSerialize(CL)
+	nCR := b128.UnSerialize(CR)
 
 	var gB = nCL.Add(nCR.Mul(x.RedNeg()))
 	var accumulator = b128.Zero()
@@ -63,11 +63,11 @@ func Sign(address string, keypair Account) []string {
 		},
 	}
 
-	sx, sy := b128.Serialize(K)
+	skey := b128.Serialize(K)
 	bytes, _ := arguments.Pack(
 		common.HexToAddress(address),
 		keypair.Y,
-		[2]string{sx, sy},
+		[2]string(skey),
 	)
 
 	c := Hash(hex.EncodeToString(bytes))
@@ -79,10 +79,9 @@ func CreateAccount() Account {
 	x := b128.RanddomScalar()
 	p := b128.CurveG().Mul(x)
 
-	pub_x, pub_y := b128.Serialize(p)
 	return Account{
 		X: x,
-		Y: types.Publickey{pub_x, pub_y},
+		Y: b128.Serialize(p),
 	}
 }
 
