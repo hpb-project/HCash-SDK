@@ -2,10 +2,11 @@ package prover
 
 import (
 	"encoding/hex"
+	"errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/types"
 	"github.com/hpb-project/HCash-SDK/core/utils"
+	"log"
 	"math"
 	"math/big"
 	"strings"
@@ -149,37 +150,117 @@ func Reverse(s []string) []string {
 	return s
 }
 
-type Statement struct {
-	Input_CLn []types.Publickey
-	CLn       *GeneratorVector
-	Input_CRn []types.Publickey
-	CRn       *GeneratorVector
-	Input_C   []types.Publickey
-	C         *GeneratorVector
-	Input_D   types.Publickey
-	D         utils.Point
-	Input_y   []types.Publickey
-	Y         *GeneratorVector
-
+type interTransferStatement struct {
+	CLn   *GeneratorVector
+	CRn   *GeneratorVector
+	C     *GeneratorVector
+	D     utils.Point
+	Y     *GeneratorVector
 	Epoch uint
 }
-type Witness struct {
-	Input_bTransfer int
-	BTransfer       *ebigint.NBigInt
 
-	Input_bDiff int
-	BDiff       *ebigint.NBigInt
-
-	Input_index []int
-	Index       []int
-
-	Input_sk *ebigint.NBigInt
-
-	Input_r *ebigint.NBigInt
+type interTransferWitness struct {
+	bTransfer *ebigint.NBigInt
+	bDiff     *ebigint.NBigInt
+	index     []int
+	sk        *ebigint.NBigInt
+	r         *ebigint.NBigInt
 }
 
-func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *ZetherProof {
+func (this ZetherProver) toInnerStatement(tstatement TransferStatement) (*interTransferStatement, error) {
+	statement := &interTransferStatement{}
+	statement.Epoch = tstatement.Epoch
+
+	{
+		gv := make([]utils.Point, 0)
+		for _, CLn := range tstatement.CLn {
+			p := b128.UnSerialize(CLn)
+			gv = append(gv, p)
+		}
+		statement.CLn = NewGeneratorVector(gv)
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, CRn := range tstatement.CRn {
+			p := b128.UnSerialize(CRn)
+			gv = append(gv, p)
+		}
+		statement.CRn = NewGeneratorVector(gv)
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, C := range tstatement.C {
+			p := b128.UnSerialize(C)
+			gv = append(gv, p)
+		}
+		statement.C = NewGeneratorVector(gv)
+	}
+	{
+		statement.D = b128.UnSerialize(tstatement.D)
+	}
+	{
+		gv := make([]utils.Point, 0)
+		for _, y := range tstatement.Y {
+			p := b128.UnSerialize(y)
+			gv = append(gv, p)
+		}
+		statement.Y = NewGeneratorVector(gv)
+	}
+
+	return statement, nil
+}
+
+func (this ZetherProver) toWitness(iwitness TransferWitness) (*interTransferWitness, error) {
+	witness := &interTransferWitness{}
+	witness.bTransfer = ebigint.NewNBigInt(int64(iwitness.BTransfer)).ToRed(b128.Q())
+	witness.bDiff = ebigint.NewNBigInt(int64(iwitness.BDiff)).ToRed(b128.Q())
+	witness.index = make([]int, len(iwitness.Index))
+	for i := 0; i < len(iwitness.Index); i++ {
+		witness.index[i] = iwitness.Index[i]
+	}
+
+	str_sk := iwitness.SK
+	if strings.HasPrefix(str_sk, "0x") {
+		str_sk = str_sk[2:]
+	}
+	sk, ok := big.NewInt(0).SetString(str_sk, 16)
+	if !ok {
+		return nil, errors.New("witness sk is invalid")
+	} else {
+		witness.sk = ebigint.ToNBigInt(sk).ForceRed(b128.Q())
+	}
+
+	str_random := iwitness.R
+	if strings.HasPrefix(str_random, "0x") {
+		str_random = str_random[2:]
+	}
+	random, ok := big.NewInt(0).SetString(str_random, 16)
+	if !ok {
+		return nil, errors.New("witness sk is invalid")
+	} else {
+		witness.sk = ebigint.ToNBigInt(random).ForceRed(b128.Q())
+	}
+	return witness, nil
+}
+
+func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness TransferWitness) *ZetherProof {
+	var err error
+	var statement *interTransferStatement
+	var witness *interTransferWitness
+
 	proof := &ZetherProof{}
+
+	statement, err = this.toInnerStatement(istatement)
+	if err != nil {
+		log.Printf("to inner statement failed, err:%s\n", err.Error())
+		return nil
+	}
+
+	witness, err = this.toWitness(iwitness)
+	if err != nil {
+		log.Printf("to inner witness failed, err:%s\n", err.Error())
+		return nil
+	}
 
 	bytes32_T, _ := abi.NewType("bytes32", "", nil)
 	bytes32_2ST, _ := abi.NewType("bytes32[2][]", "", nil)
@@ -206,11 +287,11 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 			Type: uint256_T,
 		},
 	}
-	vCLn := statement.Input_CLn
-	vCRn := statement.Input_CRn
-	vC := statement.Input_C
-	vD := statement.Input_D
-	vy := statement.Input_y
+	vCLn := istatement.CLn
+	vCRn := istatement.CRn
+	vC := istatement.C
+	vD := istatement.D
+	vy := istatement.Y
 	vepoch := statement.Epoch
 
 	bytes, _ := arguments.Pack(
@@ -222,53 +303,11 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		vepoch)
 
 	var statementHash = utils.Hash(hex.EncodeToString(bytes))
-	{
-		gv := make([]utils.Point, 0)
-		for _, CLn := range vCLn {
-			p := b128.UnSerialize(CLn)
-			gv = append(gv, p)
-		}
-		statement.CLn = NewGeneratorVector(gv)
-	}
-	{
-		gv := make([]utils.Point, 0)
-		for _, CRn := range vCRn {
-			p := b128.UnSerialize(CRn)
-			gv = append(gv, p)
-		}
-		statement.CRn = NewGeneratorVector(gv)
-	}
-	{
-		gv := make([]utils.Point, 0)
-		for _, C := range vC {
-			p := b128.UnSerialize(C)
-			gv = append(gv, p)
-		}
-		statement.C = NewGeneratorVector(gv)
-	}
-	{
-		statement.D = b128.UnSerialize(vD)
-	}
-	{
-		gv := make([]utils.Point, 0)
-		for _, y := range vy {
-			p := b128.UnSerialize(y)
-			gv = append(gv, p)
-		}
-		statement.Y = NewGeneratorVector(gv)
-	}
 
-	{
-		vbTransfer := witness.Input_bTransfer
-		witness.BTransfer = ebigint.NewNBigInt(int64(vbTransfer)).ToRed(b128.Q())
-
-		vbDiff := witness.Input_bDiff
-		witness.BDiff = ebigint.NewNBigInt(int64(vbDiff)).ToRed(b128.Q())
-	}
 	var aL *FieldVector
 	{
-		t1 := big.NewInt(0).Lsh(witness.BDiff.Int, 32)
-		number := big.NewInt(0).Add(witness.BTransfer.Int, t1)
+		t1 := big.NewInt(0).Lsh(witness.bDiff.Int, 32)
+		number := big.NewInt(0).Add(witness.bTransfer.Int, t1)
 
 		splits := strings.Split(number.Text(2), "")
 
@@ -318,7 +357,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 	var b *FieldVector
 	{
 		//var b = new FieldVector((new BN(witness['index'][1]).toString(2, m) + new BN(witness['index'][0]).toString(2, m)).split("").reverse().map((i) => new BN(i, 2).toRed(bn128.q)));
-		vIndex := witness.Input_index
+		vIndex := witness.index
 		v1 := big.NewInt(int64(vIndex[1])).Text(2)
 		v2 := big.NewInt(int64(vIndex[0])).Text(2)
 		nvindex := PaddingString(v1, m) + PaddingString(v2, m)
@@ -412,7 +451,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		//proof.CLnG = Array.from({ length: m }).map((_, k) => statement['CLn'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(phi[k])));
 		proof.CLnG = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			proof.CLnG[k] = statement.CLn.Commit(NP[k]).Add(statement.Y.GetVector()[witness.Input_index[0]].Mul(phi[k]))
+			proof.CLnG[k] = statement.CLn.Commit(NP[k]).Add(statement.Y.GetVector()[witness.index[0]].Mul(phi[k]))
 		}
 
 		//proof.CRnG = Array.from({ length: m }).map((_, k) => statement['CRn'].commit(P[k]).add(params.getG().mul(phi[k])));
@@ -424,7 +463,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		//proof.C_0G = Array.from({ length: m }).map((_, k) => statement['C'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(chi[k])));
 		proof.C_0G = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			proof.C_0G[k] = statement.C.Commit(NP[k]).Add(statement.Y.GetVector()[witness.Input_index[0]].Mul(chi[k]))
+			proof.C_0G[k] = statement.C.Commit(NP[k]).Add(statement.Y.GetVector()[witness.index[0]].Mul(chi[k]))
 		}
 
 		//proof.DG = Array.from({ length: m }).map((_, k) => params.getG().mul(chi[k]));
@@ -436,7 +475,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		//proof.y_0G = Array.from({ length: m }).map((_, k) => statement['y'].commit(P[k]).add(statement['y'].getVector()[witness['index'][0]].mul(psi[k])));
 		proof.y_0G = make([]utils.Point, m)
 		for k := 0; k < m; k++ {
-			proof.y_0G[k] = statement.Y.Commit(NP[k]).Add(statement.Y.GetVector()[witness.Input_index[0]].Mul(psi[k]))
+			proof.y_0G[k] = statement.Y.Commit(NP[k]).Add(statement.Y.GetVector()[witness.index[0]].Mul(psi[k]))
 		}
 
 		//proof.gG = Array.from({ length: m }).map((_, k) => params.getG().mul(psi[k]));
@@ -459,7 +498,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 	}
 	var vPow = ebigint.NewNBigInt(1).ToRed(b128.Q())
 	for i := 0; i < N; i++ {
-		var temp = this.params.GetG().Mul(witness.BTransfer.RedMul(vPow))
+		var temp = this.params.GetG().Mul(witness.bTransfer.RedMul(vPow))
 		var poly = NQ
 		if i%2 == 0 {
 			poly = NP
@@ -467,7 +506,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		//proof.C_XG = proof.C_XG.map((C_XG_k, k) => C_XG_k.add(temp.mul(poly[k].getVector()[(witness['index'][0] + N - (i - i % 2)) % N].redNeg().redAdd(poly[k].getVector()[(witness['index'][1] + N - (i - i % 2)) % N]))));
 		n_C_XG := make([]utils.Point, len(proof.C_XG))
 		for k, C_XG_k := range proof.C_XG {
-			n_C_XG[k] = C_XG_k.Add(temp.Mul(poly[k].GetVector()[(witness.Input_index[0]+N-(i-i%2))%N].RedNeg().RedAdd(poly[k].GetVector()[(witness.Input_index[1]+N-(i-i%2))%N])))
+			n_C_XG[k] = C_XG_k.Add(temp.Mul(poly[k].GetVector()[(witness.index[0]+N-(i-i%2))%N].RedNeg().RedAdd(poly[k].GetVector()[(witness.index[1]+N-(i-i%2))%N])))
 		}
 
 		proof.C_XG = n_C_XG
@@ -667,7 +706,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		for k := 0; k < m; k++ {
 			CRnR = CRnR.Add(this.params.GetG().Mul(phi[k].RedNeg().RedMul(wPow)))
 			DR = DR.Add(this.params.GetG().Mul(chi[k].RedNeg().RedMul(wPow)))
-			y_0R = y_0R.Add(statement.Y.GetVector()[witness.Input_index[0]].Mul(psi[k].RedNeg().RedMul(wPow)))
+			y_0R = y_0R.Add(statement.Y.GetVector()[witness.index[0]].Mul(psi[k].RedNeg().RedMul(wPow)))
 			gR = gR.Add(this.params.GetG().Mul(psi[k].RedNeg().RedMul(wPow)))
 			y_XR = y_XR.Add(proof.y_XG[k].Mul(ebigint.ToNBigInt(big.NewInt(0).Neg(wPow.Int)).ToRed(wPow.GetRed())))
 
@@ -676,15 +715,15 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 			wPow = wPow.RedMul(w)
 		}
 
-		CRnR = CRnR.Add(statement.CRn.GetVector()[witness.Input_index[0]].Mul(wPow))
-		y_0R = y_0R.Add(statement.Y.GetVector()[witness.Input_index[0]].Mul(wPow))
+		CRnR = CRnR.Add(statement.CRn.GetVector()[witness.index[0]].Mul(wPow))
+		y_0R = y_0R.Add(statement.Y.GetVector()[witness.index[0]].Mul(wPow))
 		DR = DR.Add(statement.D.Mul(wPow))
 		gR = gR.Add(this.params.GetG().Mul(wPow))
 		{
 			//p = p.add(new FieldVector(Array.from({ length: N }).map((_, i) => i == witness['index'][0] ? wPow : new BN().toRed(bn128.q))));
 			vtp := make([]*ebigint.NBigInt, N)
 			for i := 0; i < N; i++ {
-				if i == witness.Input_index[0] {
+				if i == witness.index[0] {
 					vtp[i] = wPow
 				} else {
 					vtp[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
@@ -695,7 +734,7 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 			//q = q.add(new FieldVector(Array.from({ length: N }).map((_, i) => i == witness['index'][1] ? wPow : new BN().toRed(bn128.q))));
 			vtq := make([]*ebigint.NBigInt, N)
 			for i := 0; i < N; i++ {
-				if i == witness.Input_index[1] {
+				if i == witness.index[1] {
 					vtq[i] = wPow
 				} else {
 					vtq[i] = ebigint.NewNBigInt(0).ToRed(b128.Q())
@@ -772,10 +811,10 @@ func (this ZetherProver) GenerateProof(statement Statement, witness Witness) *Ze
 		proof.c = utils.Hash(hex.EncodeToString(bytes))
 	}
 
-	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.Input_sk))
-	proof.s_r = k_r.RedAdd(proof.c.RedMul(witness.Input_r))
+	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.sk))
+	proof.s_r = k_r.RedAdd(proof.c.RedMul(witness.r))
 
-	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.BTransfer.RedMul(zs[0]).RedAdd(witness.BDiff.RedMul(zs[1])).RedMul(wPow)))
+	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.bTransfer.RedMul(zs[0]).RedAdd(witness.bDiff.RedMul(zs[1])).RedMul(wPow)))
 	proof.s_tau = k_tau.RedAdd(proof.c.RedMul(tauX.RedMul(wPow)))
 
 	var gs = this.params.GetGS()

@@ -2,7 +2,8 @@ package prover
 
 import (
 	"encoding/hex"
-	"github.com/hpb-project/HCash-SDK/core/types"
+	"errors"
+	"log"
 	"math/big"
 	"strings"
 
@@ -54,17 +55,6 @@ type BurnProver struct {
 	ipProver *InnerProductProver
 }
 
-type BurnStatement struct {
-	Input_CLn types.Publickey
-	CLn       utils.Point
-	Input_CRn types.Publickey
-	CRn       utils.Point
-	Input_y   types.Publickey
-	Y         utils.Point
-	Epoch     uint
-	Sender    string
-}
-
 func NewBurnProver() BurnProver {
 	params := NewGeneratorParams(int(32), nil, nil)
 	return BurnProver{
@@ -73,8 +63,65 @@ func NewBurnProver() BurnProver {
 	}
 }
 
-func (burn BurnProver) GenerateProof(statement BurnStatement, witness Witness) *BurnProof {
+type interBurnStatement struct {
+	CLn    utils.Point
+	CRn    utils.Point
+	Y      utils.Point
+	Epoch  uint
+	Sender string
+}
+
+type interBurnWitness struct {
+	bDiff *ebigint.NBigInt
+	sk    *ebigint.NBigInt
+}
+
+func (burn BurnProver) tointerBurnStatement(istatement BurnStatement) (*interBurnStatement, error) {
+	statement := &interBurnStatement{}
+	statement.Epoch = istatement.Epoch
+	statement.Sender = istatement.Sender
+
+	statement.CLn = b128.UnSerialize(istatement.CLn)
+	statement.CRn = b128.UnSerialize(istatement.CRn)
+	statement.Y = b128.UnSerialize(istatement.Y)
+
+	return statement, nil
+}
+
+func (burn BurnProver) tointerBurnWitness(iwitness BurnWitness) (*interBurnWitness, error) {
+	witness := &interBurnWitness{}
+	witness.bDiff = ebigint.NewNBigInt(int64(iwitness.BDiff)).ToRed(b128.Q())
+
+	str_sk := iwitness.SK
+	if strings.HasPrefix(str_sk, "0x") {
+		str_sk = str_sk[2:]
+	}
+	sk, ok := big.NewInt(0).SetString(str_sk, 16)
+	if !ok {
+		return nil, errors.New("witness sk is invalid")
+	} else {
+		witness.sk = ebigint.ToNBigInt(sk).ForceRed(b128.Q())
+	}
+	return witness, nil
+}
+
+func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitness) *BurnProof {
 	var proof = &BurnProof{}
+	var err error
+	var statement *interBurnStatement
+	var witness *interBurnWitness
+
+	statement, err = burn.tointerBurnStatement(istatement)
+	if err != nil {
+		log.Printf("to inter burn statement failed, err:%s\n", err.Error())
+		return nil
+	}
+
+	witness, err = burn.tointerBurnWitness(iwitness)
+	if err != nil {
+		log.Printf("to inter burn waitness failed, err:%s\n", err.Error())
+		return nil
+	}
 
 	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
 	uint256_T, _ := abi.NewType("uint256", "", nil)
@@ -97,28 +144,17 @@ func (burn BurnProver) GenerateProof(statement BurnStatement, witness Witness) *
 			Type: address_T,
 		},
 	}
-	vCLn := statement.Input_CLn //{{x1,y1}, {x2,y2}...}
-	vCRn := statement.Input_CRn
-	vy := statement.Input_y
-	vepoch := statement.Epoch
-	vsender := statement.Sender
 
 	bytes, _ := arguments.Pack(
-		vCLn,
-		vCRn,
-		vy,
-		vepoch,
-		vsender)
+		istatement.CLn,
+		istatement.CRn,
+		istatement.Y,
+		istatement.Epoch,
+		istatement.Sender)
 
 	var statementHash = utils.Hash(hex.EncodeToString(bytes))
 
-	statement.CLn = b128.UnSerialize(vCLn)
-	statement.CRn = b128.UnSerialize(vCRn)
-	statement.Y = b128.UnSerialize(vy)
-
-	witness.BDiff = ebigint.NewNBigInt(int64(witness.Input_bDiff)).ToRed(b128.Q())
-
-	splits := strings.Split(witness.BDiff.Text(2), "")
+	splits := strings.Split(witness.bDiff.Text(2), "")
 	//println("len splits = ", len(splits), "xx ", splits)
 	reversed := Reverse(splits)
 	nArray := make([]*ebigint.NBigInt, len(reversed))
@@ -251,8 +287,8 @@ func (burn BurnProver) GenerateProof(statement BurnStatement, witness Witness) *
 		[2]string(b128.Serialize(A_u)),
 	)
 	proof.c = utils.Hash(hex.EncodeToString(cbytes))
-	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.Input_sk))
-	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.BDiff.RedMul(zs[0])))
+	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.sk))
+	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.bDiff.RedMul(zs[0])))
 	proof.s_tau = k_tau.RedAdd(proof.c.RedMul(tauX))
 
 	var gs = burn.params.GetGS()
