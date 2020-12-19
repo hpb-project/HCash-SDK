@@ -4,23 +4,23 @@ import (
 	"encoding/json"
 )
 
-type Publickey [2]string
+type Point [2]string
 
-func (p Publickey) GX() string {
+func (p Point) GX() string {
 	return p[0]
 }
 
-func (p Publickey) GY() string {
+func (p Point) GY() string {
 	return p[1]
 }
 
-func (p Publickey) Set(xy []string) Publickey {
+func (p Point) Set(xy []string) Point {
 	p[0] = xy[0]
 	p[1] = xy[1]
 	return p
 }
 
-func (p Publickey) MarshalJSON() ([]byte, error) {
+func (p Point) MarshalJSON() ([]byte, error) {
 	type IPubkey struct {
 		GX string `json:"gx"`
 		GY string `json:"gy"`
@@ -31,7 +31,7 @@ func (p Publickey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(enc)
 }
 
-func (p Publickey) String() string {
+func (p Point) String() string {
 	d, _ := json.Marshal(p)
 	return string(d)
 }

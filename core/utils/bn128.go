@@ -109,7 +109,7 @@ func (b *BN128) B_MAX() int {
 	return B_MAX
 }
 
-func (b *BN128) Serialize(p Point) types.Publickey {
+func (b *BN128) Serialize(p Point) types.Point {
 	var x, y string
 	if p[0] == nil && p[1] == nil {
 		x = "0x0000000000000000000000000000000000000000000000000000000000000000"
@@ -118,10 +118,10 @@ func (b *BN128) Serialize(p Point) types.Publickey {
 		x = b.Bytes(p[0])
 		y = b.Bytes(p[1])
 	}
-	return types.Publickey{x, y}
+	return types.Point{x, y}
 }
 
-func (b *BN128) UnSerialize(pubkey types.Publickey) Point {
+func (b *BN128) UnSerialize(pubkey types.Point) Point {
 	x := pubkey.GX()
 	y := pubkey.GY()
 	if x == "0x0000000000000000000000000000000000000000000000000000000000000000" && y == "0x0000000000000000000000000000000000000000000000000000000000000000" {

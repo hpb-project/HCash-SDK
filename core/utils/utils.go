@@ -2,8 +2,8 @@ package utils
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	abi "github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"github.com/hpb-project/HCash-SDK/core/types"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
@@ -12,14 +12,46 @@ import (
 
 type Account struct {
 	X *ebigint.NBigInt `json:"x"`
-	Y types.Publickey  `json:"y"`
+	Y types.Point      `json:"y"`
+}
+
+func (a Account) String() string {
+	b, _ := json.Marshal(a)
+	return string(b)
+}
+
+func (a Account) MarshalJSON() ([]byte, error) {
+	type pAccount struct {
+		x *ebigint.NBigInt `json:"x"`
+		y types.Point      `json:"y"`
+	}
+	var p pAccount
+	p.x = a.X
+	p.y = a.Y
+
+	return json.Marshal(p)
+}
+
+func (a Account) UnmarshalJSON(input []byte) error {
+	type pAccount struct {
+		x *ebigint.NBigInt `json:"x"`
+		y types.Point      `json:"y"`
+	}
+	var p pAccount
+	if err := json.Unmarshal(input, &p); err != nil {
+		return err
+	}
+	a.X = p.x.ForceRed(b128.Q())
+	a.Y = p.y
+
+	return nil
 }
 
 var (
 	b128 = NewBN128()
 )
 
-func ReadBalance(CL, CR types.Publickey, x *ebigint.NBigInt) int {
+func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 	nCL := b128.UnSerialize(CL)
 	nCR := b128.UnSerialize(CR)
 
@@ -44,7 +76,7 @@ func Hash(str string) *ebigint.NBigInt {
 	return ebigint.ToNBigInt(n).ToRed(b128.Q())
 }
 
-func Sign(address string, keypair Account) []string {
+func Sign(address []byte, keypair Account) string {
 	var k = b128.RanddomScalar()
 	var K = b128.CurveG().Mul(k)
 
@@ -65,14 +97,23 @@ func Sign(address string, keypair Account) []string {
 
 	skey := b128.Serialize(K)
 	bytes, _ := arguments.Pack(
-		common.HexToAddress(address),
+		address,
 		keypair.Y,
 		[2]string(skey),
 	)
 
 	c := Hash(hex.EncodeToString(bytes))
 	var s = c.RedMul(keypair.X).RedAdd(k)
-	return []string{b128.Bytes(c.Int), b128.Bytes(s.Int)}
+	type CS struct {
+		C string `json:"c"`
+		S string `json:"s"`
+	}
+	var ret_cs = CS{
+		C: b128.Bytes(c.Int),
+		S: b128.Bytes(s.Int),
+	}
+	data, _ := json.Marshal(ret_cs)
+	return string(data)
 }
 
 func CreateAccount() Account {
