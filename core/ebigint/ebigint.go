@@ -19,6 +19,11 @@ func NewNBigInt(v int64) *NBigInt {
 	return &NBigInt{big.NewInt(v), nil, nil}
 }
 
+func FromBytes(buf []byte) *NBigInt {
+	b := big.NewInt(0).SetBytes(buf)
+	return &NBigInt{b, nil, nil}
+}
+
 func (this *NBigInt) MarshalJSON() ([]byte, error) {
 	s := this.Int.Text(16)
 	return []byte(s), nil

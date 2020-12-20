@@ -160,7 +160,7 @@ func MapInto(seed string) Point {
 	}
 }
 
-func GEpoch(epoch uint) Point {
+func GEpoch(epoch int) Point {
 
 	// soliditySha3
 	// todo : change the type of epoch with contract defined.
@@ -171,8 +171,8 @@ func GEpoch(epoch uint) Point {
 	return MapInto(hashstr)
 }
 
-func U(epoch uint, x *big.Int) Point {
+func U(epoch int, x *ebigint.NBigInt) Point {
 	p := GEpoch(epoch)
 
-	return p.Mul(ebigint.ToNBigInt(x))
+	return p.Mul(x)
 }

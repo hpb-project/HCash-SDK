@@ -1,7 +1,9 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
+	"github.com/hpb-project/HCash-SDK/common"
 )
 
 type Point [2]string
@@ -34,4 +36,18 @@ func (p Point) MarshalJSON() ([]byte, error) {
 func (p Point) String() string {
 	d, _ := json.Marshal(p)
 	return string(d)
+}
+
+func (p Point) Match(o Point) bool {
+	px := common.FromHex(p.GX())
+	py := common.FromHex(p.GY())
+
+	ox := common.FromHex(o.GX())
+	oy := common.FromHex(o.GY())
+
+	if bytes.Compare(px, ox) == 0 && bytes.Compare(py, oy) == 0 {
+		return true
+	} else {
+		return false
+	}
 }

@@ -1,9 +1,10 @@
 package main
 
-
-import "github.com/hpb-project/HCash-SDK/core/utils/service"
+import (
+	"github.com/hpb-project/HCash-SDK/core/utils"
+)
 
 func main() {
-	a := service.CreateAccount("123456")
-	println("a=",a.String())
+	a := utils.CreateAccount("123456")
+	println("a=", a.String())
 }

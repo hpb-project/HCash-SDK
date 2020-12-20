@@ -1,7 +1,6 @@
 package prover
 
 import (
-	"encoding/hex"
 	"github.com/hpb-project/HCash-SDK/core/types"
 	"github.com/hpb-project/HCash-SDK/core/utils"
 )
@@ -12,7 +11,7 @@ type TransferStatement struct {
 	C     []types.Point
 	D     types.Point
 	Y     []types.Point
-	Epoch uint
+	Epoch int
 }
 
 type TransferWitness struct {
@@ -32,25 +31,10 @@ type BurnStatement struct {
 	CLn    types.Point
 	CRn    types.Point
 	Y      types.Point
-	Epoch  uint
+	Epoch  int
 	Sender string
 }
 
 var (
 	b128 = utils.NewBN128()
 )
-
-func has0xPrefix(str string) bool {
-	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
-}
-
-func FromHex(s string) []byte {
-	if has0xPrefix(s) {
-		s = s[2:]
-	}
-	if len(s)%2 == 1 {
-		s = "0" + s
-	}
-	h, _ := hex.DecodeString(s)
-	return h
-}
