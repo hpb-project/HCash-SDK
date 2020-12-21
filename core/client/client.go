@@ -3,10 +3,9 @@ package client
 import (
 	"encoding/json"
 	"github.com/hpb-project/HCash-SDK/common"
+	"github.com/hpb-project/HCash-SDK/common/types"
+	"github.com/hpb-project/HCash-SDK/core"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/prover"
-	"github.com/hpb-project/HCash-SDK/core/types"
-	"github.com/hpb-project/HCash-SDK/core/utils"
 	"log"
 	"math"
 	"math/big"
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	b128 = utils.NewBN128()
+	b128 = core.NewBN128()
 )
 
 /*
@@ -23,7 +22,7 @@ var (
  * output: {'x':'', 'y':{'gx':'', 'gy':''}}
  */
 func CreateAccount(secret string) string {
-	var account utils.Account
+	var account core.Account
 	if secret != "" {
 		if strings.HasPrefix(secret, "0x") {
 			secret = secret[2:]
@@ -32,7 +31,7 @@ func CreateAccount(secret string) string {
 		account.X = ebigint.ToNBigInt(x).ToRed(b128.Q())
 		account.Y = b128.Serialize(b128.CurveG().Mul(account.X))
 	} else {
-		account = utils.CreateAccount()
+		account = core.CreateAccount()
 	}
 
 	data, _ := json.Marshal(account)
@@ -47,8 +46,8 @@ func CreateAccount(secret string) string {
 	json string, content is big number hex string. {'c':'', 's':''}
 */
 type SignParam struct {
-	ZSCAddr   string        `json:"address"`
-	Accounter utils.Account `json:"account"`
+	ZSCAddr   string       `json:"address"`
+	Accounter core.Account `json:"account"`
 }
 
 func Sign(input string) string {
@@ -57,7 +56,7 @@ func Sign(input string) string {
 		log.Printf("unmarshal param failed, err:%s\n", e.Error())
 		return ""
 	}
-	return utils.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+	return core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
 }
 
 /*
@@ -77,7 +76,7 @@ func ReadBalance(param string) int {
 	}
 	x := ebigint.FromBytes(common.FromHex(p.X)).ForceRed(b128.Q())
 
-	return utils.ReadBalance(p.CL, p.CR, x)
+	return core.ReadBalance(p.CL, p.CR, x)
 }
 
 /*
@@ -171,9 +170,9 @@ func TransferProof(param string) string {
 		log.Printf("unmarshal param to TransferProofParam failed, err:%s\n", e.Error())
 		return ""
 	}
-	var unserialized = make([][2]utils.Point, 0)
+	var unserialized = make([][2]core.Point, 0)
 	for _, account := range p.Accounts {
-		var m [2]utils.Point
+		var m [2]core.Point
 		m[0] = b128.UnSerialize(account[0])
 		m[1] = b128.UnSerialize(account[1])
 		unserialized = append(unserialized, m)
@@ -184,7 +183,7 @@ func TransferProof(param string) string {
 	}
 
 	var r = b128.RanddomScalar()
-	var C = make([]utils.Point, len(p.Y))
+	var C = make([]core.Point, len(p.Y))
 	for i, party := range p.Y {
 		var temp *ebigint.NBigInt
 		if i == p.Index[0] {
@@ -212,7 +211,7 @@ func TransferProof(param string) string {
 	}
 
 	var ND = b128.Serialize(D)
-	var statement prover.TransferStatement
+	var statement core.TransferStatement
 	statement.Epoch = p.Epoch
 	statement.Y = p.Y
 	statement.D = ND
@@ -220,15 +219,15 @@ func TransferProof(param string) string {
 	statement.CLn = CLn
 	statement.CRn = CRn
 
-	var witness prover.TransferWitness
+	var witness core.TransferWitness
 	witness.Index = p.Index
 	witness.BDiff = p.Diff
 	witness.BTransfer = p.Value
 	witness.R = r.Text(16)
 	witness.SK = p.SK
-	var proof = utils.ProveTransfer(statement, witness)
+	var proof = core.ProveTransfer(statement, witness)
 	sk := ebigint.FromBytes(common.FromHex(p.SK))
-	var u = b128.Serialize(utils.U(p.Epoch, sk))
+	var u = b128.Serialize(core.U(p.Epoch, sk))
 
 	type Response struct {
 		C     []types.Point `json:"C"`
@@ -248,7 +247,7 @@ func TransferProof(param string) string {
 	return string(b)
 }
 
-func Some(accounts [][2]utils.Point) bool {
+func Some(accounts [][2]core.Point) bool {
 	var count = 0
 	for _, account := range accounts {
 		if account[0].Equal(b128.Zero()) && account[1].Equal(b128.Zero()) {
@@ -280,19 +279,19 @@ func BurnProof(param string) string {
 	var simulated = p.Accounts
 	var CLn = b128.Serialize(b128.UnSerialize(simulated[0]).Add(b128.CurveG().Mul(ebigint.NewNBigInt(-int64(p.Value)))))
 	var CRn = simulated[1]
-	var statement prover.BurnStatement
+	var statement core.BurnStatement
 	statement.Y = p.Y
 	statement.Epoch = p.Epoch
 	statement.CRn = CRn
 	statement.CLn = CLn
 	statement.Sender = p.Sender
 
-	var witness prover.BurnWitness
+	var witness core.BurnWitness
 	witness.SK = p.SK
 	witness.BDiff = p.Diff
-	var proof = utils.ProveBurn(statement, witness)
+	var proof = core.ProveBurn(statement, witness)
 	sk := ebigint.FromBytes(common.FromHex(p.SK))
-	var u = b128.Serialize(utils.U(p.Epoch, sk))
+	var u = b128.Serialize(core.U(p.Epoch, sk))
 
 	type Response struct {
 		U     types.Point `json:"u"`

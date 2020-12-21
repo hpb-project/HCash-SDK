@@ -1,4 +1,4 @@
-package prover
+package core
 
 import (
 	"encoding/hex"
@@ -6,41 +6,40 @@ import (
 
 	//"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/utils"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"math/big"
 )
 
 type GeneratorParams struct {
-	g  utils.Point
-	h  utils.Point
+	g  Point
+	h  Point
 	gs *GeneratorVector
 	hs *GeneratorVector
 }
 
 func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParams {
 	gp := &GeneratorParams{}
-	gp.g = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
+	gp.g = MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
 
 	h_types := reflect.TypeOf(hi).String()
 	if h_types == "int" {
-		gsInnards := make([]utils.Point, 0)
-		hsInnards := make([]utils.Point, 0)
+		gsInnards := make([]Point, 0)
+		hsInnards := make([]Point, 0)
 		hVal := hi.(int)
 		for i := 0; i < hVal; i++ {
-			p1 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
+			p1 := MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
 				solsha3.String("G"), solsha3.Uint32(i))))
 			gsInnards = append(gsInnards, p1)
-			p2 := utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
+			p2 := MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
 				solsha3.String("H"), solsha3.Uint32(i))))
 			hsInnards = append(hsInnards, p2)
 		}
-		gp.h = utils.MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("H"))))
+		gp.h = MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("H"))))
 
 		gp.gs = NewGeneratorVector(gsInnards)
 		gp.hs = NewGeneratorVector(hsInnards)
 	} else {
-		gp.h = hi.(utils.Point)
+		gp.h = hi.(Point)
 		gp.gs = gs
 		gp.hs = hs
 	}
@@ -48,11 +47,11 @@ func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParam
 	return gp
 }
 
-func (g GeneratorParams) GetG() utils.Point {
+func (g GeneratorParams) GetG() Point {
 	return g.g
 }
 
-func (g GeneratorParams) GetH() utils.Point {
+func (g GeneratorParams) GetH() Point {
 	return g.h
 }
 
@@ -64,7 +63,7 @@ func (g GeneratorParams) GetHS() *GeneratorVector {
 	return g.hs
 }
 
-func (g *GeneratorParams) Commit(blinding *ebigint.NBigInt, gExp, hExp *FieldVector) utils.Point {
+func (g *GeneratorParams) Commit(blinding *ebigint.NBigInt, gExp, hExp *FieldVector) Point {
 	var result = g.h.Mul(blinding)
 	var gsVector = g.gs.GetVector()
 	gexpVector := gExp.GetVector()
@@ -235,16 +234,16 @@ func (f *FieldVector) InnerProduct(other *FieldVector) *ebigint.NBigInt {
 }
 
 type GeneratorVector struct {
-	vector []utils.Point
+	vector []Point
 }
 
-func NewGeneratorVector(Innards []utils.Point) *GeneratorVector {
+func NewGeneratorVector(Innards []Point) *GeneratorVector {
 	gv := &GeneratorVector{}
 	gv.vector = Innards
 	return gv
 }
 
-func (g *GeneratorVector) GetVector() []utils.Point {
+func (g *GeneratorVector) GetVector() []Point {
 	return g.vector
 }
 
@@ -256,8 +255,8 @@ func (g *GeneratorVector) Slice(begin, end int) *GeneratorVector {
 	return NewGeneratorVector(g.vector[begin:end])
 }
 
-func (g *GeneratorVector) Commit(exponents *FieldVector) utils.Point {
-	var nVectors = make([]utils.Point, 0)
+func (g *GeneratorVector) Commit(exponents *FieldVector) Point {
+	var nVectors = make([]Point, 0)
 	var innards = exponents.GetVector()
 
 	for _, c := range g.vector {
@@ -273,8 +272,8 @@ func (g *GeneratorVector) Commit(exponents *FieldVector) utils.Point {
 	return accumulator
 }
 
-func (g *GeneratorVector) Sum() utils.Point {
-	var nVectors = make([]utils.Point, 0)
+func (g *GeneratorVector) Sum() Point {
+	var nVectors = make([]Point, 0)
 
 	for _, c := range g.vector {
 		nVectors = append(nVectors, c)
@@ -291,7 +290,7 @@ func (g *GeneratorVector) Sum() utils.Point {
 
 func (g *GeneratorVector) Add(other *GeneratorVector) *GeneratorVector {
 	var innards = other.GetVector()
-	var nInnards = make([]utils.Point, len(g.vector))
+	var nInnards = make([]Point, len(g.vector))
 	for i, elem := range g.vector {
 		nInnards[i] = elem.Add(innards[i])
 	}
@@ -301,7 +300,7 @@ func (g *GeneratorVector) Add(other *GeneratorVector) *GeneratorVector {
 
 func (g *GeneratorVector) Hadamard(exponents *FieldVector) *GeneratorVector {
 	var innards = exponents.GetVector()
-	var nInnards = make([]utils.Point, len(g.vector))
+	var nInnards = make([]Point, len(g.vector))
 
 	for i, elem := range g.vector {
 		nInnards[i] = elem.Mul(innards[i])
@@ -311,7 +310,7 @@ func (g *GeneratorVector) Hadamard(exponents *FieldVector) *GeneratorVector {
 }
 
 func (g *GeneratorVector) Negate() *GeneratorVector {
-	var nInnards = make([]utils.Point, len(g.vector))
+	var nInnards = make([]Point, len(g.vector))
 	for i, elem := range g.vector {
 		nInnards[i] = elem.Neg()
 	}
@@ -320,7 +319,7 @@ func (g *GeneratorVector) Negate() *GeneratorVector {
 }
 
 func (g *GeneratorVector) Times(constant *ebigint.NBigInt) *GeneratorVector {
-	var nInnards = make([]utils.Point, len(g.vector))
+	var nInnards = make([]Point, len(g.vector))
 
 	for i, elem := range g.vector {
 		nInnards[i] = elem.Mul(constant)
@@ -330,7 +329,7 @@ func (g *GeneratorVector) Times(constant *ebigint.NBigInt) *GeneratorVector {
 }
 
 func (g *GeneratorVector) Extract(parity int) *GeneratorVector {
-	var nInnards = make([]utils.Point, len(g.vector))
+	var nInnards = make([]Point, len(g.vector))
 	for i, elem := range g.vector {
 		if i%2 == parity {
 			nInnards = append(nInnards, elem)
@@ -341,7 +340,7 @@ func (g *GeneratorVector) Extract(parity int) *GeneratorVector {
 }
 
 func (g *GeneratorVector) Concat(other *GeneratorVector) *GeneratorVector {
-	var nInnards = make([]utils.Point, 0)
+	var nInnards = make([]Point, 0)
 	for _, elem := range g.vector {
 		nInnards = append(nInnards, elem)
 	}
@@ -515,7 +514,7 @@ func (pc PedersenCommitment) GetR() *ebigint.NBigInt {
 	return pc.r
 }
 
-func (pc PedersenCommitment) Commit() utils.Point {
+func (pc PedersenCommitment) Commit() Point {
 	return pc.params.GetG().Mul(pc.x).Add(pc.params.GetH().Mul(pc.r))
 }
 
@@ -546,8 +545,8 @@ func NewPolyCommitment(params GeneratorParams, coefficients []*ebigint.NBigInt) 
 	return pc
 }
 
-func (pc *PolyCommitment) GetCommitments() []utils.Point {
-	commitments := make([]utils.Point, len(pc.coefficientCommitments[1:]))
+func (pc *PolyCommitment) GetCommitments() []Point {
+	commitments := make([]Point, len(pc.coefficientCommitments[1:]))
 	for i, commitment := range pc.coefficientCommitments[1:] {
 		commitments[i] = commitment.Commit()
 	}

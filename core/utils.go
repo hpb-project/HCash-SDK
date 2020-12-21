@@ -1,11 +1,11 @@
-package utils
+package core
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	abi "github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/types"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"math/big"
 )

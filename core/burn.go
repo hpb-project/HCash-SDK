@@ -1,4 +1,4 @@
-package prover
+package core
 
 import (
 	"encoding/hex"
@@ -9,12 +9,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/utils"
 )
 
 type BurnProof struct {
-	BA       utils.Point
-	BS       utils.Point
+	BA       Point
+	BS       Point
 	tCommits *GeneratorVector
 
 	tHat *ebigint.NBigInt
@@ -64,9 +63,9 @@ func NewBurnProver() BurnProver {
 }
 
 type interBurnStatement struct {
-	CLn    utils.Point
-	CRn    utils.Point
-	Y      utils.Point
+	CLn    Point
+	CRn    Point
+	Y      Point
 	Epoch  uint
 	Sender string
 }
@@ -152,7 +151,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		istatement.Epoch,
 		istatement.Sender)
 
-	var statementHash = utils.Hash(hex.EncodeToString(bytes))
+	var statementHash = Hash(hex.EncodeToString(bytes))
 
 	splits := strings.Split(witness.bDiff.Text(2), "")
 	//println("len splits = ", len(splits), "xx ", splits)
@@ -202,7 +201,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 			[2]string(b128.Serialize(proof.BS)),
 		)
 
-		y = utils.Hash(hex.EncodeToString(ybytes))
+		y = Hash(hex.EncodeToString(ybytes))
 	}
 
 	var vys = make([]*ebigint.NBigInt, 0)
@@ -211,7 +210,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		vys = append(vys, vys[i-1].RedMul(y))
 	}
 	ys := NewFieldVector(vys)
-	z := utils.Hash(b128.Bytes(y.Int))
+	z := Hash(b128.Bytes(y.Int))
 
 	var zs = make([]*ebigint.NBigInt, 0)
 	zs = append(zs, z.RedExp(big.NewInt(2)))
@@ -246,7 +245,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		[2]string(b128.Serialize(pcment[0])),
 		[2]string(b128.Serialize(pcment[1])),
 	)
-	var x = utils.Hash(hex.EncodeToString(xbytes))
+	var x = Hash(hex.EncodeToString(xbytes))
 
 	var evalCommit = polyCommitment.Evaluate(x)
 	proof.tHat = evalCommit.GetX()
@@ -260,7 +259,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var A_y = burn.params.GetG().Mul(k_sk)
 	var A_b = burn.params.GetG().Mul(k_b).Add(statement.CRn.Mul(zs[0]).Mul(k_sk))
 	var A_t = burn.params.GetG().Mul(k_b.RedNeg()).Add(burn.params.GetH().Mul(k_tau))
-	var A_u = utils.GEpoch(statement.Epoch).Mul(k_sk)
+	var A_u = GEpoch(statement.Epoch).Mul(k_sk)
 
 	argumentsproofc := abi.Arguments{
 		{
@@ -286,7 +285,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		[2]string(b128.Serialize(A_t)),
 		[2]string(b128.Serialize(A_u)),
 	)
-	proof.c = utils.Hash(hex.EncodeToString(cbytes))
+	proof.c = Hash(hex.EncodeToString(cbytes))
 	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.sk))
 	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.bDiff.RedMul(zs[0])))
 	proof.s_tau = k_tau.RedAdd(proof.c.RedMul(tauX))
@@ -306,7 +305,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	obytes, _ := argumento.Pack(
 		b128.Bytes(proof.c.Int),
 	)
-	var o = utils.Hash(hex.EncodeToString(obytes))
+	var o = Hash(hex.EncodeToString(obytes))
 	var u_x = burn.params.GetG().Mul(o)
 	P = P.Add(u_x.Mul(proof.tHat))
 	var primeBase = NewGeneratorParams(u_x, gs, hPrimes)

@@ -1,7 +1,7 @@
 package ebigint
 
 import (
-	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
+	"github.com/hpb-project/HCash-SDK/core/bn128"
 	"math/big"
 )
 
@@ -12,16 +12,16 @@ type NBigInt struct {
 }
 
 func ToNBigInt(b *big.Int) *NBigInt {
-	return &NBigInt{b, nil, nil}
+	return &NBigInt{Int: b, r: nil}
 }
 
 func NewNBigInt(v int64) *NBigInt {
-	return &NBigInt{big.NewInt(v), nil, nil}
+	return &NBigInt{Int: big.NewInt(v), r: nil}
 }
 
 func FromBytes(buf []byte) *NBigInt {
 	b := big.NewInt(0).SetBytes(buf)
-	return &NBigInt{b, nil, nil}
+	return &NBigInt{Int: b, r: nil}
 }
 
 func (this *NBigInt) MarshalJSON() ([]byte, error) {

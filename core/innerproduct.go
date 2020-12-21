@@ -1,15 +1,14 @@
-package prover
+package core
 
 import (
 	"encoding/hex"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/utils"
 )
 
 type InnerProductProof struct {
-	L []utils.Point
-	R []utils.Point
+	L []Point
+	R []Point
 	A *ebigint.NBigInt
 	B *ebigint.NBigInt
 }
@@ -28,8 +27,8 @@ func (i *InnerProductProof) Serialize() string {
 	return result
 }
 
-func generateProof(base *GeneratorParams, P utils.Point, as *FieldVector, bs *FieldVector,
-	ls []utils.Point, rs []utils.Point, previousChallenge *ebigint.NBigInt) *InnerProductProof {
+func generateProof(base *GeneratorParams, P Point, as *FieldVector, bs *FieldVector,
+	ls []Point, rs []Point, previousChallenge *ebigint.NBigInt) *InnerProductProof {
 	var n = as.Length()
 	if n == 1 {
 		proof := &InnerProductProof{}
@@ -82,7 +81,7 @@ func generateProof(base *GeneratorParams, P utils.Point, as *FieldVector, bs *Fi
 		[2]string(b128.Serialize(L)),
 		[2]string(b128.Serialize(R)),
 	)
-	var x = utils.Hash(hex.EncodeToString(bytes))
+	var x = Hash(hex.EncodeToString(bytes))
 	var xInv = x.RedInvm()
 
 	var gPrime = gLeft.Times(xInv).Add(gRight.Times(x))
@@ -106,7 +105,7 @@ type InnerProduct_witness struct {
 
 type InnerProduct_statement struct {
 	PrimeBase *GeneratorParams
-	P         utils.Point
+	P         Point
 }
 
 func (t InnerProductProver) GenerateProof(statement InnerProduct_statement,
@@ -116,5 +115,5 @@ func (t InnerProductProver) GenerateProof(statement InnerProduct_statement,
 	P := statement.P
 	l := witness.L
 	r := witness.R
-	return generateProof(base, P, l, r, []utils.Point{}, []utils.Point{}, salt)
+	return generateProof(base, P, l, r, []Point{}, []Point{}, salt)
 }

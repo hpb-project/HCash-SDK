@@ -1,9 +1,9 @@
-package utils
+package core
 
 import (
+	"github.com/hpb-project/HCash-SDK/common/types"
+	"github.com/hpb-project/HCash-SDK/core/bn128"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
-	"github.com/hpb-project/HCash-SDK/core/types"
-	"github.com/hpb-project/HCash-SDK/core/utils/bn128"
 	"math/big"
 )
 

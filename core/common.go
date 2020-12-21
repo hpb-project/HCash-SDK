@@ -1,8 +1,7 @@
-package prover
+package core
 
 import (
-	"github.com/hpb-project/HCash-SDK/core/types"
-	"github.com/hpb-project/HCash-SDK/core/utils"
+	"github.com/hpb-project/HCash-SDK/common/types"
 )
 
 type TransferStatement struct {
@@ -36,5 +35,5 @@ type BurnStatement struct {
 }
 
 var (
-	b128 = utils.NewBN128()
+	b128 = NewBN128()
 )
