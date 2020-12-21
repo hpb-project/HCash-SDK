@@ -7,6 +7,11 @@
 
 typedef struct { const char *p; size_t n; } gostring_t;
 //typedef void(*logger_fn_t)(int level, const char *msg);
-extern char* hCashBurnProof();
-extern char* hCashCreateAccount(gostring_t pwd);
+extern char *hCashCreateAccount(gostring_t secret);
+extern char *hCashSign(gostring_t input);
+extern int   hCashReadBalance(gostring_t param);
+extern char *hCashShuffle(gostring_t input);
+extern char *hCashTransferProof(gostring_t input);
+extern char *hCashBurnProof(gostring_t input);
+
 #endif
