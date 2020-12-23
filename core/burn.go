@@ -66,7 +66,7 @@ type interBurnStatement struct {
 	CLn    Point
 	CRn    Point
 	Y      Point
-	Epoch  uint
+	Epoch  int
 	Sender string
 }
 

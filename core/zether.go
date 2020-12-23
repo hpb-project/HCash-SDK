@@ -155,7 +155,7 @@ type interTransferStatement struct {
 	C     *GeneratorVector
 	D     Point
 	Y     *GeneratorVector
-	Epoch uint
+	Epoch int
 }
 
 type interTransferWitness struct {

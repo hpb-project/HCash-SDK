@@ -47,10 +47,6 @@ func (a Account) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-var (
-	b128 = NewBN128()
-)
-
 func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 	nCL := b128.UnSerialize(CL)
 	nCR := b128.UnSerialize(CR)
