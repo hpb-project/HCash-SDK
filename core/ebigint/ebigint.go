@@ -1,14 +1,14 @@
 package ebigint
 
 import (
-	"github.com/hpb-project/HCash-SDK/core/bn128"
+	"github.com/hpb-project/HCash-SDK/core/bn256"
 	"math/big"
 )
 
 type NBigInt struct {
 	*big.Int
 	r  *Red
-	fq bn128.Fq
+	fq bn256.Fq
 }
 
 func ToNBigInt(b *big.Int) *NBigInt {
@@ -35,7 +35,7 @@ func (this *NBigInt) Red(m *big.Int) *Red {
 
 func (this *NBigInt) ForceRed(r *Red) *NBigInt {
 	this.r = r
-	this.fq = bn128.NewFq(r.Int)
+	this.fq = bn256.NewFq(r.Int)
 	return this
 }
 

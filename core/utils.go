@@ -150,7 +150,7 @@ func MapInto(seed string) Point {
 		var y = y_squared.RedExp(p_1_4)
 
 		if y.RedExp(big.NewInt(2)).Eq(y_squared) {
-			return NewPoint(b128, seed_red.FromRed().Int, y.FromRed().Int)
+			return NewPoint(seed_red.FromRed().Int, y.FromRed().Int)
 		}
 		seed_red.RedIAdd(ebigint.NewNBigInt(1).ToRed(b128.P()))
 	}
