@@ -27,14 +27,20 @@ type Point struct {
 	p *bn256.G1
 }
 
+func newPoint(p *bn256.G1) Point {
+	n := new(Point)
+	n.p = p
+	return *n
+}
+
 func (p Point) Mul(o *ebigint.NBigInt) Point {
 	np := new(bn256.G1).ScalarMult(p.p, o.Int)
-	return Point{np}
+	return newPoint(np)
 }
 
 func (p Point) Add(o Point) Point {
 	np := new(bn256.G1).Add(p.p, o.p)
-	return Point{np}
+	return newPoint(np)
 }
 
 func (p Point) Equal(o Point) bool {
@@ -43,7 +49,7 @@ func (p Point) Equal(o Point) bool {
 
 func (p Point) Neg() Point {
 	np := new(bn256.G1).Neg(p.p)
-	return Point{np}
+	return newPoint(np)
 }
 
 func (p Point) XY() (*big.Int, *big.Int) {
@@ -53,6 +59,10 @@ func (p Point) XY() (*big.Int, *big.Int) {
 	} else {
 		return nil, nil
 	}
+}
+
+func (p Point) String() string {
+	return p.p.String()
 }
 
 func NewPoint(d1, d2 *big.Int) Point {
@@ -97,7 +107,7 @@ func NewBN128() *BN128 {
 }
 
 func (b *BN128) CurveG() Point {
-	return Point{b.G1}
+	return newPoint(b.G1)
 }
 
 func (b *BN128) CurveRed() *ebigint.Red {
@@ -138,6 +148,7 @@ func (b *BN128) B_MAX() int {
 }
 
 func (b *BN128) Serialize(p Point) types.Point {
+	//log.Println("serialize p", p)
 	var x, y string
 	gx, gy := p.XY()
 	if gx == nil || gy == nil {

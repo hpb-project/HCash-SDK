@@ -22,6 +22,10 @@ func (p Point) Set(xy []string) Point {
 	return p
 }
 
+func (p Point) Equal(o Point) bool {
+	return p[0] == o[0] && p[1] == o[1]
+}
+
 func (p Point) MarshalJSON() ([]byte, error) {
 	type IPubkey struct {
 		GX string `json:"gx"`
