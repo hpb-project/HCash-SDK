@@ -8,6 +8,7 @@ import (
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"math/big"
+	"strings"
 )
 
 type Account struct {
@@ -66,10 +67,15 @@ func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 
 func Hash(str string) *ebigint.NBigInt {
 	// soliditySha3
-	hash := solsha3.SoliditySHA3(solsha3.String(str[2:]))
-	hexstr := hex.EncodeToString(hash)
-	n, _ := big.NewInt(0).SetString(hexstr, 16)
-	return ebigint.ToNBigInt(n).ToRed(b128.Q())
+	if strings.HasPrefix(str, "0x") { // auto change to u256
+		str = str[2:]
+		p, _ := new(big.Int).SetString(str, 16)
+		hash := solsha3.SoliditySHA3(solsha3.Uint256(p))
+		return ebigint.FromBytes(hash).ToRed(b128.Q())
+	} else {
+		hash := solsha3.SoliditySHA3(solsha3.String(str))
+		return ebigint.FromBytes(hash).ToRed(b128.Q())
+	}
 }
 
 func Sign(address []byte, keypair Account) string {

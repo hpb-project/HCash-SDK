@@ -74,6 +74,19 @@ func TestSoliditySha3(t *testing.T) {
 	assert.Equal(t, str, "85b85a2be04a7b93dd38cf16a007a8dc5a277ccc71a55081143221cbd42c6f8f")
 }
 
+func TestHash(t *testing.T) {
+	{
+		hexstr := "0x85b85a2be04a7b93dd38cf16a007a8dc5a277ccc71a55081143221cbd42c6f8f"
+		hash := Hash(hexstr)
+		assert.Equal(t, hash.Text(16), "1dad24f83633aebe1d4742c6a843fb82dc5e84dbcbca2c5af2dbccd6af8a2700")
+	}
+	{
+		str := "85b85a2be04a7b93dd38cf16a007a8dc5a277ccc71a55081143221cbd42c6f8f"
+		hash := Hash(str)
+		assert.Equal(t, hash.Text(16), "740e2d6e73d24c31b91f9a93d64eeb3eb5c2df3f0ef3afda1a105605b9cc43e")
+	}
+}
+
 func TestGEpoch(t *testing.T) {
 	epoch := 16
 	gepoch := GEpoch(epoch)
