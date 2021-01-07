@@ -141,9 +141,8 @@ func MapInto(seed string) Point {
 	n, _ := big.NewInt(0).SetString(seed[2:], 16)
 	seed_red := ebigint.ToNBigInt(n).ToRed(b128.P())
 
-	one := big.NewInt(1)
-	p1_4 := one.Div(one, big.NewInt(4))
-	p_1_4 := one.Add(b128.P().Int, p1_4)
+	add_one := new(big.Int).Add(b128.P().Int, big.NewInt(1))
+	p_1_4 := new(big.Int).Div(add_one, big.NewInt(4))
 
 	for {
 		y_squared := seed_red.RedExp(big.NewInt(3)).RedAdd(ebigint.NewNBigInt(3).ToRed(b128.Q()))
@@ -157,11 +156,8 @@ func MapInto(seed string) Point {
 }
 
 func GEpoch(epoch int) Point {
-
 	// soliditySha3
-	// todo : change the type of epoch with contract defined.
-	hash := solsha3.SoliditySHA3(solsha3.String("Zether"),
-		solsha3.Uint32(epoch))
+	hash := solsha3.SoliditySHA3(solsha3.String("Zether"), solsha3.Uint256(big.NewInt(int64(epoch))))
 	hashstr := "0x" + hex.EncodeToString(hash)
 
 	return MapInto(hashstr)

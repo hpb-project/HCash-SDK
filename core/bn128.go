@@ -54,7 +54,9 @@ func (p Point) Neg() Point {
 
 func (p Point) XY() (*big.Int, *big.Int) {
 	if p.p != nil {
-		x, y, _, _ := p.p.CurvePoints()
+		data := p.p.Marshal()
+		x := new(big.Int).SetBytes(data[0:32])
+		y := new(big.Int).SetBytes(data[32:64])
 		return x, y
 	} else {
 		return nil, nil
@@ -148,7 +150,6 @@ func (b *BN128) B_MAX() int {
 }
 
 func (b *BN128) Serialize(p Point) types.Point {
-	//log.Println("serialize p", p)
 	var x, y string
 	gx, gy := p.XY()
 	if gx == nil || gy == nil {
