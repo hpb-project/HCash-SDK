@@ -64,7 +64,11 @@ func (p Point) XY() (*big.Int, *big.Int) {
 }
 
 func (p Point) String() string {
-	return p.p.String()
+	data := p.p.Marshal()
+	x := data[0:32]
+	y := data[32:]
+	up := types.Point{hex.EncodeToString(x), hex.EncodeToString(y)}
+	return up.String()
 }
 
 func NewPoint(d1, d2 *big.Int) Point {

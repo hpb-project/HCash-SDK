@@ -7,6 +7,7 @@ import (
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
+	"log"
 	"math/big"
 	"strings"
 )
@@ -69,13 +70,58 @@ func Hash(str string) *ebigint.NBigInt {
 	// soliditySha3
 	if strings.HasPrefix(str, "0x") { // auto change to u256
 		str = str[2:]
-		p, _ := new(big.Int).SetString(str, 16)
-		hash := solsha3.SoliditySHA3(solsha3.Uint256(p))
-		return ebigint.FromBytes(hash).ToRed(b128.Q())
-	} else {
-		hash := solsha3.SoliditySHA3(solsha3.String(str))
-		return ebigint.FromBytes(hash).ToRed(b128.Q())
 	}
+	p, _ := new(big.Int).SetString(str, 16)
+	hash := solsha3.SoliditySHA3(solsha3.Uint256(p))
+	return ebigint.FromBytes(hash).ToRed(b128.Q())
+}
+
+// just for test with special k.
+func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) string {
+	log.Println("Sign k = ", k.Text(16))
+	var K = b128.CurveG().Mul(k)
+	log.Println("Sign Kbig=", K.String())
+
+	addressT, _ := abi.NewType("address", "", nil)
+	log.Println("Sign address = ", hex.EncodeToString(address))
+	log.Println("Sign keypair = ", keypair.String())
+
+	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
+
+	arguments := abi.Arguments{
+		{
+			Type: addressT,
+		},
+		{
+			Type: bytes32_2T,
+		},
+		{
+			Type: bytes32_2T,
+		},
+	}
+
+	skey := b128.Serialize(K)
+	bytes, _ := arguments.Pack(
+		address,
+		keypair.Y,
+		[2]string(skey),
+	)
+	log.Println("Sign abiencoder=", hex.EncodeToString(bytes))
+
+	c := Hash(hex.EncodeToString(bytes))
+	var s = c.RedMul(keypair.X).RedAdd(k)
+	log.Println("Sign c=", c.Text(16))
+	log.Println("Sign s=", s.Text(16))
+	type CS struct {
+		C string `json:"c"`
+		S string `json:"s"`
+	}
+	var ret_cs = CS{
+		C: b128.Bytes(c.Int),
+		S: b128.Bytes(s.Int),
+	}
+	data, _ := json.Marshal(ret_cs)
+	return string(data)
 }
 
 func Sign(address []byte, keypair Account) string {
@@ -120,6 +166,15 @@ func Sign(address []byte, keypair Account) string {
 
 func CreateAccount() Account {
 	x := b128.RanddomScalar()
+	p := b128.CurveG().Mul(x)
+
+	return Account{
+		X: x,
+		Y: b128.Serialize(p),
+	}
+}
+
+func CreateAccountWithX(x *ebigint.NBigInt) Account {
 	p := b128.CurveG().Mul(x)
 
 	return Account{
