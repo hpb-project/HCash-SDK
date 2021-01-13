@@ -24,9 +24,9 @@ func FromBytes(buf []byte) *NBigInt {
 	return &NBigInt{Int: b, r: nil}
 }
 
-func (this *NBigInt) MarshalJSON() ([]byte, error) {
+func (this *NBigInt) String() string {
 	s := this.Int.Text(16)
-	return []byte(s), nil
+	return s
 }
 
 func (this *NBigInt) Red(m *big.Int) *Red {

@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	abi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
@@ -18,33 +19,42 @@ type Account struct {
 }
 
 func (a Account) String() string {
-	b, _ := json.Marshal(a)
+	b, e := json.Marshal(a)
+	if e != nil {
+		log.Println("account marshal failed, e:", e.Error())
+	}
 	return string(b)
 }
 
 func (a Account) MarshalJSON() ([]byte, error) {
 	type pAccount struct {
-		x *ebigint.NBigInt `json:"x"`
-		y types.Point      `json:"y"`
+		X string      `json:"x"`
+		Y types.Point `json:"y"`
 	}
 	var p pAccount
-	p.x = a.X
-	p.y = a.Y
+	p.X = a.X.String()
+	p.Y = a.Y
 
 	return json.Marshal(p)
 }
 
-func (a Account) UnmarshalJSON(input []byte) error {
+func (a *Account) UnmarshalJSON(input []byte) error {
 	type pAccount struct {
-		x *ebigint.NBigInt `json:"x"`
-		y types.Point      `json:"y"`
+		X string       `json:"x"`
+		Y *types.Point `json:"y"`
 	}
 	var p pAccount
 	if err := json.Unmarshal(input, &p); err != nil {
 		return err
 	}
-	a.X = p.x.ForceRed(b128.Q())
-	a.Y = p.y
+
+	nx, ok := new(big.Int).SetString(p.X, 16)
+	if !ok {
+		return errors.New("invalid hex string for x field")
+	}
+
+	a.X = ebigint.ToNBigInt(nx).ForceRed(b128.Q())
+	a.Y = *p.Y
 
 	return nil
 }
@@ -101,14 +111,14 @@ func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) string 
 	}
 
 	skey := b128.Serialize(K)
-	bytes, _ := arguments.Pack(
+	thebytes, _ := arguments.Pack(
 		address,
 		keypair.Y,
 		[2]string(skey),
 	)
-	log.Println("Sign abiencoder=", hex.EncodeToString(bytes))
+	log.Println("Sign abiencoder=", hex.EncodeToString(thebytes))
 
-	c := Hash(hex.EncodeToString(bytes))
+	c := Hash(hex.EncodeToString(thebytes))
 	var s = c.RedMul(keypair.X).RedAdd(k)
 	log.Println("Sign c=", c.Text(16))
 	log.Println("Sign s=", s.Text(16))
@@ -167,20 +177,12 @@ func Sign(address []byte, keypair Account) string {
 func CreateAccount() Account {
 	x := b128.RanddomScalar()
 	p := b128.CurveG().Mul(x)
-
-	return Account{
-		X: x,
-		Y: b128.Serialize(p),
-	}
+	return Account{X: x, Y: b128.Serialize(p)}
 }
 
 func CreateAccountWithX(x *ebigint.NBigInt) Account {
 	p := b128.CurveG().Mul(x)
-
-	return Account{
-		X: x,
-		Y: b128.Serialize(p),
-	}
+	return Account{X: x, Y: b128.Serialize(p)}
 }
 
 /*

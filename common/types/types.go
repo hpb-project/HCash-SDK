@@ -37,6 +37,20 @@ func (p Point) MarshalJSON() ([]byte, error) {
 	return json.Marshal(enc)
 }
 
+func (p *Point) UnmarshalJSON(input []byte) error {
+	type IPubkey struct {
+		GX string `json:"gx"`
+		GY string `json:"gy"`
+	}
+	var enc IPubkey
+	if err := json.Unmarshal(input, &enc); err != nil {
+		return err
+	}
+	p[0] = enc.GX
+	p[1] = enc.GY
+	return nil
+}
+
 func (p Point) String() string {
 	d, _ := json.Marshal(p)
 	return string(d)
