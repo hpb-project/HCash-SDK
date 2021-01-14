@@ -44,7 +44,9 @@ func (p Point) Add(o Point) Point {
 }
 
 func (p Point) Equal(o Point) bool {
-	return p.p.String() == o.p.String()
+	d1 := p.p.Marshal()
+	d2 := o.p.Marshal()
+	return bytes.Compare(d1, d2) == 0
 }
 
 func (p Point) Neg() Point {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	abi "github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
@@ -76,26 +78,25 @@ func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 	return 0
 }
 
+type ABI_Bytes32 [32]byte
+type ETH_ADDR common.Address
+
 func Hash(str string) *ebigint.NBigInt {
 	// soliditySha3
 	if strings.HasPrefix(str, "0x") { // auto change to u256
 		str = str[2:]
 	}
-	p, _ := new(big.Int).SetString(str, 16)
-	hash := solsha3.SoliditySHA3(solsha3.Uint256(p))
+	d, _ := hex.DecodeString(str)
+	hash := crypto.Keccak256(d)
+	//log.Println("keccak256 hash = ", hex.EncodeToString(hash))
 	return ebigint.FromBytes(hash).ToRed(b128.Q())
 }
 
 // just for test with special k.
-func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) string {
-	log.Println("Sign k = ", k.Text(16))
+func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) (*ebigint.NBigInt, *ebigint.NBigInt, error) {
 	var K = b128.CurveG().Mul(k)
-	log.Println("Sign Kbig=", K.String())
 
 	addressT, _ := abi.NewType("address", "", nil)
-	log.Println("Sign address = ", hex.EncodeToString(address))
-	log.Println("Sign keypair = ", keypair.String())
-
 	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
 
 	arguments := abi.Arguments{
@@ -109,32 +110,41 @@ func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) string 
 			Type: bytes32_2T,
 		},
 	}
+	var addr = ETH_ADDR{}
+	copy(addr[:], address[:])
+
+	var bx, by ABI_Bytes32
+	bbx, _ := hex.DecodeString(keypair.Y.GX()[2:])
+	bby, _ := hex.DecodeString(keypair.Y.GY()[2:])
+	copy(bx[:], bbx)
+	copy(by[:], bby)
 
 	skey := b128.Serialize(K)
-	thebytes, _ := arguments.Pack(
-		address,
-		keypair.Y,
-		[2]string(skey),
+	var kx, ky ABI_Bytes32
+	bkx, _ := hex.DecodeString(skey.GX()[2:])
+	bky, _ := hex.DecodeString(skey.GY()[2:])
+	copy(kx[:], bkx[:])
+	copy(ky[:], bky[:])
+	thebytes, e := arguments.Pack(
+		addr,
+		[2]ABI_Bytes32{bx, by},
+		[2]ABI_Bytes32{kx, ky},
 	)
-	log.Println("Sign abiencoder=", hex.EncodeToString(thebytes))
+	if e != nil {
+		log.Println("Sign pack failed, e:", e.Error())
+		return nil, nil, e
+	}
+	//log.Println("Sign abiencoder=", hex.EncodeToString(thebytes))
 
 	c := Hash(hex.EncodeToString(thebytes))
 	var s = c.RedMul(keypair.X).RedAdd(k)
-	log.Println("Sign c=", c.Text(16))
-	log.Println("Sign s=", s.Text(16))
-	type CS struct {
-		C string `json:"c"`
-		S string `json:"s"`
-	}
-	var ret_cs = CS{
-		C: b128.Bytes(c.Int),
-		S: b128.Bytes(s.Int),
-	}
-	data, _ := json.Marshal(ret_cs)
-	return string(data)
+	//log.Println("Sign c=", c.Text(16))
+	//log.Println("Sign s=", s.Text(16))
+
+	return c, s, e
 }
 
-func Sign(address []byte, keypair Account) string {
+func Sign(address []byte, keypair Account) (*ebigint.NBigInt, *ebigint.NBigInt, error) {
 	var k = b128.RanddomScalar()
 	var K = b128.CurveG().Mul(k)
 
@@ -152,26 +162,38 @@ func Sign(address []byte, keypair Account) string {
 			Type: bytes32_2T,
 		},
 	}
+	var addr = ETH_ADDR{}
+	copy(addr[:], address[:])
+
+	var bx, by ABI_Bytes32
+	bbx, _ := hex.DecodeString(keypair.Y.GX()[2:])
+	bby, _ := hex.DecodeString(keypair.Y.GY()[2:])
+	copy(bx[:], bbx)
+	copy(by[:], bby)
 
 	skey := b128.Serialize(K)
-	bytes, _ := arguments.Pack(
-		address,
-		keypair.Y,
-		[2]string(skey),
+	var kx, ky ABI_Bytes32
+	bkx, _ := hex.DecodeString(skey.GX()[2:])
+	bky, _ := hex.DecodeString(skey.GY()[2:])
+	copy(kx[:], bkx[:])
+	copy(ky[:], bky[:])
+	thebytes, e := arguments.Pack(
+		addr,
+		[2]ABI_Bytes32{bx, by},
+		[2]ABI_Bytes32{kx, ky},
 	)
+	if e != nil {
+		log.Println("Sign pack failed, e:", e.Error())
+		return nil, nil, e
+	}
+	//log.Println("Sign abiencoder=", hex.EncodeToString(thebytes))
 
-	c := Hash(hex.EncodeToString(bytes))
+	c := Hash(hex.EncodeToString(thebytes))
 	var s = c.RedMul(keypair.X).RedAdd(k)
-	type CS struct {
-		C string `json:"c"`
-		S string `json:"s"`
-	}
-	var ret_cs = CS{
-		C: b128.Bytes(c.Int),
-		S: b128.Bytes(s.Int),
-	}
-	data, _ := json.Marshal(ret_cs)
-	return string(data)
+	//log.Println("Sign c=", c.Text(16))
+	//log.Println("Sign s=", s.Text(16))
+
+	return c, s, nil
 }
 
 func CreateAccount() Account {

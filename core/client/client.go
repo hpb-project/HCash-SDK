@@ -56,7 +56,22 @@ func Sign(input string) string {
 		log.Printf("unmarshal param failed, err:%s\n", e.Error())
 		return ""
 	}
-	return core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+	c, s, e := core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+	if e != nil {
+		log.Println("sign failed error:", e.Error())
+		return ""
+	}
+
+	type CS struct {
+		C string `json:"c"`
+		S string `json:"s"`
+	}
+	var ret_cs = CS{
+		C: b128.Bytes(c.Int),
+		S: b128.Bytes(s.Int),
+	}
+	data, _ := json.Marshal(ret_cs)
+	return string(data)
 }
 
 /*
