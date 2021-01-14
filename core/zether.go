@@ -321,18 +321,18 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	}
 
 	var aR = aL.Plus(ebigint.NewNBigInt(1).ToRed(b128.Q()).RedNeg())
-	var alpha = b128.RanddomScalar()
+	var alpha = b128.RandomScalar()
 	proof.BA = this.params.Commit(alpha, aL, aR)
 
 	var vsL = make([]*ebigint.NBigInt, 64)
 	var vsR = make([]*ebigint.NBigInt, 64)
 	for i := 0; i < 64; i++ {
-		vsL[i] = b128.RanddomScalar()
-		vsR[i] = b128.RanddomScalar()
+		vsL[i] = b128.RandomScalar()
+		vsR[i] = b128.RandomScalar()
 	}
 	var sL = NewFieldVector(vsL)
 	var sR = NewFieldVector(vsR)
-	var rho = b128.RanddomScalar()
+	var rho = b128.RandomScalar()
 	proof.BS = this.params.Commit(rho, sL, sR)
 
 	var N = statement.Y.Length()
@@ -341,14 +341,14 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	//}
 
 	var m = big.NewInt(int64(N)).BitLen() - 1
-	var r_A = b128.RanddomScalar()
-	var r_B = b128.RanddomScalar()
+	var r_A = b128.RandomScalar()
+	var r_B = b128.RandomScalar()
 
 	var a *FieldVector
 	{
 		var pa = make([]*ebigint.NBigInt, 2*m)
 		for i := 0; i < 2*m; i++ {
-			pa[i] = b128.RanddomScalar()
+			pa[i] = b128.RandomScalar()
 		}
 		a = NewFieldVector(pa)
 	}
@@ -421,10 +421,10 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	}
 	var phi, chi, psi, omega = make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m)
 	for i := 0; i < m; i++ {
-		phi[i] = b128.RanddomScalar()
-		chi[i] = b128.RanddomScalar()
-		psi[i] = b128.RanddomScalar()
-		omega[i] = b128.RanddomScalar()
+		phi[i] = b128.RandomScalar()
+		chi[i] = b128.RandomScalar()
+		psi[i] = b128.RandomScalar()
+		omega[i] = b128.RandomScalar()
 	}
 	NP, NQ := make([]*FieldVector, m), make([]*FieldVector, m)
 	{
@@ -762,10 +762,10 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			}
 		}
 	}
-	var k_sk = b128.RanddomScalar()
-	var k_r = b128.RanddomScalar()
-	var k_b = b128.RanddomScalar()
-	var k_tau = b128.RanddomScalar()
+	var k_sk = b128.RandomScalar()
+	var k_r = b128.RandomScalar()
+	var k_b = b128.RandomScalar()
+	var k_tau = b128.RandomScalar()
 
 	var A_y = gR.Mul(k_sk)
 	var A_D = this.params.GetG().Mul(k_r)

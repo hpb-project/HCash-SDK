@@ -537,7 +537,7 @@ func NewPolyCommitment(params GeneratorParams, coefficients []*ebigint.NBigInt) 
 	pc.coefficientCommitments = append(pc.coefficientCommitments, tmp)
 
 	for _, coefficient := range coefficients[1:] {
-		rand := b128.RanddomScalar()
+		rand := b128.RandomScalar()
 		npc := NewPedersenCommitment(params, coefficient, rand)
 		pc.coefficientCommitments = append(pc.coefficientCommitments, npc)
 	}

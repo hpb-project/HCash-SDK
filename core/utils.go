@@ -145,7 +145,7 @@ func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) (*ebigi
 }
 
 func Sign(address []byte, keypair Account) (*ebigint.NBigInt, *ebigint.NBigInt, error) {
-	var k = b128.RanddomScalar()
+	var k = b128.RandomScalar()
 	var K = b128.CurveG().Mul(k)
 
 	addressT, _ := abi.NewType("address", "", nil)
@@ -197,7 +197,7 @@ func Sign(address []byte, keypair Account) (*ebigint.NBigInt, *ebigint.NBigInt, 
 }
 
 func CreateAccount() Account {
-	x := b128.RanddomScalar()
+	x := b128.RandomScalar()
 	p := b128.CurveG().Mul(x)
 	return Account{X: x, Y: b128.Serialize(p)}
 }

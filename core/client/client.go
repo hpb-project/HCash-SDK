@@ -197,7 +197,7 @@ func TransferProof(param string) string {
 		return ""
 	}
 
-	var r = b128.RanddomScalar()
+	var r = b128.RandomScalar()
 	var C = make([]core.Point, len(p.Y))
 	for i, party := range p.Y {
 		var temp *ebigint.NBigInt

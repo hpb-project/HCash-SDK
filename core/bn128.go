@@ -139,7 +139,7 @@ func (b *BN128) Zero() Point {
 	return Point{data}
 }
 
-func (b *BN128) RanddomScalar() *ebigint.NBigInt {
+func (b *BN128) RandomScalar() *ebigint.NBigInt {
 	fq := bn256.NewFq(b.Q().Int)
 	r, _ := fq.Rand()
 	nr := ebigint.ToNBigInt(r).ForceRed(b.Q())

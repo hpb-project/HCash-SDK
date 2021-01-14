@@ -163,7 +163,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	}
 	var aL = NewFieldVector(nArray)
 	var aR = aL.Plus(ebigint.NewNBigInt(1).ToRed(b128.Q()).RedNeg())
-	var alpha = b128.RanddomScalar()
+	var alpha = b128.RandomScalar()
 	proof.BA = burn.params.Commit(alpha, aL, aR)
 
 	var sL, sR *FieldVector
@@ -172,13 +172,13 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		var vsR = make([]*ebigint.NBigInt, 32)
 
 		for i := 0; i < 32; i++ {
-			vsL[i] = b128.RanddomScalar()
-			vsR[i] = b128.RanddomScalar()
+			vsL[i] = b128.RandomScalar()
+			vsR[i] = b128.RandomScalar()
 		}
 		sL = NewFieldVector(vsL)
 		sR = NewFieldVector(vsR)
 	}
-	var rho = b128.RanddomScalar()
+	var rho = b128.RandomScalar()
 	proof.BS = burn.params.Commit(rho, sL, sR)
 
 	var y *ebigint.NBigInt
@@ -252,9 +252,9 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var tauX = evalCommit.GetR()
 	proof.mu = alpha.RedAdd(rho.RedMul(x))
 
-	var k_sk = b128.RanddomScalar()
-	var k_b = b128.RanddomScalar()
-	var k_tau = b128.RanddomScalar()
+	var k_sk = b128.RandomScalar()
+	var k_b = b128.RandomScalar()
+	var k_tau = b128.RandomScalar()
 
 	var A_y = burn.params.GetG().Mul(k_sk)
 	var A_b = burn.params.GetG().Mul(k_b).Add(statement.CRn.Mul(zs[0]).Mul(k_sk))
