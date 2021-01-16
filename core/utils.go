@@ -79,6 +79,8 @@ func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 }
 
 type ABI_Bytes32 [32]byte
+type ABI_Bytes32_2 [2][32]byte
+type ABI_Bytes32_2S [][2][32]byte
 type ETH_ADDR common.Address
 
 func Hash(str string) *ebigint.NBigInt {

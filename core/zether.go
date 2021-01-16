@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"log"
 	"math"
@@ -40,6 +41,13 @@ type ZetherProof struct {
 
 	ipProof *InnerProductProof
 }
+
+var (
+	bytes32_T, _   = abi.NewType("bytes32", "", nil)
+	bytes32_2ST, _ = abi.NewType("bytes32[2][]", "", nil)
+	bytes32_2T, _  = abi.NewType("bytes32[2]", "", nil)
+	uint256_T, _   = abi.NewType("uint256", "", nil)
+)
 
 func (z ZetherProof) Serialize() string {
 	result := "0x"
@@ -242,30 +250,7 @@ func (this ZetherProver) toWitness(iwitness TransferWitness) (*interTransferWitn
 	return witness, nil
 }
 
-func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness TransferWitness) *ZetherProof {
-	var err error
-	var statement *interTransferStatement
-	var witness *interTransferWitness
-
-	proof := &ZetherProof{}
-
-	statement, err = this.toInnerStatement(istatement)
-	if err != nil {
-		log.Printf("to inner statement failed, err:%s\n", err.Error())
-		return nil
-	}
-
-	witness, err = this.toWitness(iwitness)
-	if err != nil {
-		log.Printf("to inner witness failed, err:%s\n", err.Error())
-		return nil
-	}
-
-	bytes32_T, _ := abi.NewType("bytes32", "", nil)
-	bytes32_2ST, _ := abi.NewType("bytes32[2][]", "", nil)
-	bytes32_2T, _ := abi.NewType("bytes32[2]", "", nil)
-	uint256_T, _ := abi.NewType("uint256", "", nil)
-
+func statementHash(istatement TransferStatement) *ebigint.NBigInt {
 	arguments := abi.Arguments{
 		{
 			Type: bytes32_2ST,
@@ -286,22 +271,80 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			Type: uint256_T,
 		},
 	}
-	vCLn := istatement.CLn
-	vCRn := istatement.CRn
-	vC := istatement.C
-	vD := istatement.D
-	vy := istatement.Y
-	vepoch := statement.Epoch
+	var vCLn = make([]ABI_Bytes32_2, len(istatement.CLn))
+	for i, cln := range istatement.CLn {
+		ax := common.FromHex(cln.GX())
+		ay := common.FromHex(cln.GY())
+		copy(vCLn[i][0][:], ax[:])
+		copy(vCLn[i][1][:], ay[:])
+	}
+	var vCRn = make([]ABI_Bytes32_2, len(istatement.CRn))
+	for i, crn := range istatement.CRn {
+		ax := common.FromHex(crn.GX())
+		ay := common.FromHex(crn.GY())
+		copy(vCRn[i][0][:], ax[:])
+		copy(vCRn[i][1][:], ay[:])
+	}
+	var vC = make([]ABI_Bytes32_2, len(istatement.C))
+	for i, c := range istatement.C {
+		ax := common.FromHex(c.GX())
+		ay := common.FromHex(c.GY())
+		copy(vC[i][0][:], ax[:])
+		copy(vC[i][1][:], ay[:])
+	}
+	var vy = make([]ABI_Bytes32_2, len(istatement.Y))
+	for i, y := range istatement.Y {
+		ax := common.FromHex(y.GX())
+		ay := common.FromHex(y.GY())
+		copy(vy[i][0][:], ax[:])
+		copy(vy[i][1][:], ay[:])
+	}
+	var vD ABI_Bytes32_2
+	{
+		ax := common.FromHex(istatement.D.GX())
+		ay := common.FromHex(istatement.D.GY())
+		copy(vD[0][:], ax[:])
+		copy(vD[1][:], ay[:])
+	}
+	vepoch := big.NewInt(int64(istatement.Epoch))
 
-	bytes, _ := arguments.Pack(
+	bytes, perr := arguments.Pack(
 		vCLn,
 		vCRn,
 		vC,
 		vD,
 		vy,
 		vepoch)
+	if perr != nil {
+		log.Println("abi packed failed, err:", perr.Error())
+		return nil
+	}
+	//log.Println("statement packed bytes = ", hex.EncodeToString(bytes))
 
 	var statementHash = Hash(hex.EncodeToString(bytes))
+	return statementHash
+}
+
+func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness TransferWitness) *ZetherProof {
+	var err error
+	proof := &ZetherProof{}
+
+	shash := statementHash(istatement)
+	log.Println("statementhash = ", shash.Text(16))
+	var statement *interTransferStatement
+	var witness *interTransferWitness
+
+	statement, err = this.toInnerStatement(istatement)
+	if err != nil {
+		log.Printf("to inner statement failed, err:%s\n", err.Error())
+		return nil
+	}
+
+	witness, err = this.toWitness(iwitness)
+	if err != nil {
+		log.Printf("to inner witness failed, err:%s\n", err.Error())
+		return nil
+	}
 
 	var aL *FieldVector
 	{
@@ -392,7 +435,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 
 	var v *ebigint.NBigInt
 	{
-		arguments = abi.Arguments{
+		arguments := abi.Arguments{
 			{
 				Type: bytes32_T,
 			},
@@ -410,8 +453,8 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			},
 		}
 
-		bytes, _ = arguments.Pack(
-			b128.Bytes(statementHash.Int),
+		bytes, _ := arguments.Pack(
+			b128.Bytes(shash.Int),
 			[2]string(b128.Serialize(proof.BA)),
 			[2]string(b128.Serialize(proof.BS)),
 			[2]string(b128.Serialize(proof.A)),
@@ -516,7 +559,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	var w *ebigint.NBigInt
 	{
 		{
-			arguments = abi.Arguments{
+			arguments := abi.Arguments{
 				{
 					Type: bytes32_T,
 				},
@@ -586,7 +629,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 				v_y_XG[i] = [2]string(b128.Serialize(proof.y_XG[i]))
 			}
 
-			bytes, _ = arguments.Pack(
+			bytes, _ := arguments.Pack(
 				b128.Bytes(v.Int),
 				v_CLnG,
 				v_CRnG,
@@ -605,13 +648,13 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 
 	var y *ebigint.NBigInt
 	{
-		arguments = abi.Arguments{
+		arguments := abi.Arguments{
 			{
 				Type: bytes32_T,
 			},
 		}
 
-		bytes, _ = arguments.Pack(
+		bytes, _ := arguments.Pack(
 			b128.Bytes(w.Int),
 		)
 		y = Hash(hex.EncodeToString(bytes))
@@ -655,7 +698,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 
 	var x *ebigint.NBigInt
 	{
-		arguments = abi.Arguments{
+		arguments := abi.Arguments{
 			{
 				Type: bytes32_T,
 			},
@@ -671,7 +714,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		for i := 0; i < len(vt); i++ {
 			vvt = append(vvt, [2]string(b128.Serialize(vt[i])))
 		}
-		bytes, _ = arguments.Pack(
+		bytes, _ := arguments.Pack(
 			b128.Bytes(z.Int),
 			vvt[0],
 			vvt[1],
@@ -775,7 +818,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	var A_u = GEpoch(statement.Epoch).Mul(k_sk)
 
 	{
-		arguments = abi.Arguments{
+		arguments := abi.Arguments{
 			{
 				Type: bytes32_T,
 			},
@@ -798,7 +841,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 				Type: bytes32_2T,
 			},
 		}
-		bytes, _ = arguments.Pack(
+		bytes, _ := arguments.Pack(
 			b128.Bytes(x.Int),
 			[2]string(b128.Serialize(A_y)),
 			[2]string(b128.Serialize(A_D)),
@@ -823,12 +866,12 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		var P = proof.BA.Add(proof.BS.Mul(x)).Add(gs.Sum().Mul(z.RedNeg())).Add(hPrimes.Commit(hExp))
 		P = P.Add(this.params.GetH().Mul(proof.mu.RedNeg()))
 
-		arguments = abi.Arguments{
+		arguments := abi.Arguments{
 			{
 				Type: bytes32_T,
 			},
 		}
-		bytes, _ = arguments.Pack(
+		bytes, _ := arguments.Pack(
 			b128.Bytes(proof.c.Int),
 		)
 		o := Hash(hex.EncodeToString(bytes))
