@@ -19,7 +19,8 @@ type GeneratorParams struct {
 
 func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParams {
 	gp := &GeneratorParams{}
-	gp.g = MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("G"))))
+	hash := solsha3.SoliditySHA3(solsha3.String("G"))
+	gp.g = MapInto(hex.EncodeToString(hash))
 
 	h_types := reflect.TypeOf(hi).String()
 	if h_types == "int" {
@@ -27,11 +28,13 @@ func NewGeneratorParams(hi interface{}, gs, hs *GeneratorVector) *GeneratorParam
 		hsInnards := make([]Point, 0)
 		hVal := hi.(int)
 		for i := 0; i < hVal; i++ {
-			p1 := MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
-				solsha3.String("G"), solsha3.Uint32(i))))
+			hash1 := solsha3.SoliditySHA3(solsha3.String("G"), solsha3.Int256(i))
+			p1 := MapInto(hex.EncodeToString(hash1))
 			gsInnards = append(gsInnards, p1)
-			p2 := MapInto(hex.EncodeToString(solsha3.SoliditySHA3(
-				solsha3.String("H"), solsha3.Uint32(i))))
+
+			hash2 := solsha3.SoliditySHA3(
+				solsha3.String("H"), solsha3.Int256(i))
+			p2 := MapInto(hex.EncodeToString(hash2))
 			hsInnards = append(hsInnards, p2)
 		}
 		gp.h = MapInto(hex.EncodeToString(solsha3.SoliditySHA3(solsha3.String("H"))))

@@ -120,10 +120,31 @@ func NewZetherProver() ZetherProver {
 	}
 }
 
-func (this ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum *Polynomial,
+type PList struct {
+	data [][]*ebigint.NBigInt
+}
+
+func NewPList() *PList {
+	var p = &PList{}
+	p.data = make([][]*ebigint.NBigInt, 0)
+	return p
+}
+
+func (p *PList) Append(d []*ebigint.NBigInt) {
+	p.data = append(p.data, d)
+}
+func (p *PList) Len() int {
+	return len(p.data)
+}
+
+func (this ZetherProver) RecursivePolynomials(plist *PList, accum *Polynomial,
 	a []*ebigint.NBigInt, b []*ebigint.NBigInt) {
+	log.Println("enter RecursivePolynomials len(plist) = ", plist.Len(), "len(a) = ", len(a), "len(b) = ", len(b))
+	defer log.Println("exit RecursivePolynomials")
 	if len(a) == 0 {
-		plist = append(plist, accum.coefficients)
+		plist.Append(accum.coefficients)
+		//plist = append(plist, accum.coefficients)
+		log.Println("len   plist = ", plist.Len())
 		return
 	}
 
@@ -142,7 +163,6 @@ func (this ZetherProver) RecursivePolynomials(plist [][]*ebigint.NBigInt, accum 
 	tmp_right = append(tmp_right, aTop)
 	tmp_right = append(tmp_right, bTop)
 	var right = NewPolynomial(tmp_right)
-
 	this.RecursivePolynomials(plist, accum.Mul(left), a, b)
 	this.RecursivePolynomials(plist, accum.Mul(right), a, b)
 
@@ -348,13 +368,11 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 
 	var aL *FieldVector
 	{
-		t1 := big.NewInt(0).Lsh(witness.bDiff.Int, 32)
-		number := big.NewInt(0).Add(witness.bTransfer.Int, t1)
-
-		splits := strings.Split(number.Text(2), "")
+		t1 := new(big.Int).Lsh(witness.bDiff.Int, 32)
+		number := new(big.Int).Add(witness.bTransfer.Int, t1)
+		splits := strings.Split(PaddingString(number.Text(2), 64), "")
 
 		reversed := Reverse(splits)
-
 		nArray := make([]*ebigint.NBigInt, len(reversed))
 		for i, r := range reversed {
 			n, _ := big.NewInt(0).SetString(r, 2)
@@ -362,6 +380,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		}
 		aL = NewFieldVector(nArray)
 	}
+	// luxq continue
 
 	var aR = aL.Plus(ebigint.NewNBigInt(1).ToRed(b128.Q()).RedNeg())
 	var alpha = b128.RandomScalar()
@@ -452,15 +471,55 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 				Type: bytes32_2T,
 			},
 		}
+		var vBA, vBS, vA, vB ABI_Bytes32_2
+		{
+			p := b128.Serialize(proof.BA)
+			log.Println("transfer proof BA = ", p)
+			x := common.FromHex(p.GX())
+			y := common.FromHex(p.GY())
+			copy(vBA[0][:], x[:])
+			copy(vBA[1][:], y[:])
+		}
+		{
+			p := b128.Serialize(proof.BS)
+			log.Println("transfer proof BS = ", p)
+			x := common.FromHex(p.GX())
+			y := common.FromHex(p.GY())
+			copy(vBS[0][:], x[:])
+			copy(vBS[1][:], y[:])
+		}
+		{
+			p := b128.Serialize(proof.A)
+			log.Println("transfer proof A = ", p)
+			x := common.FromHex(p.GX())
+			y := common.FromHex(p.GY())
+			copy(vA[0][:], x[:])
+			copy(vA[1][:], y[:])
+		}
+		{
+			p := b128.Serialize(proof.B)
+			log.Println("transfer proof B = ", p)
+			x := common.FromHex(p.GX())
+			y := common.FromHex(p.GY())
+			copy(vB[0][:], x[:])
+			copy(vB[1][:], y[:])
+		}
+		var nhash ABI_Bytes32
+		copy(nhash[:], common.FromHex(b128.Bytes(shash.Int)))
 
-		bytes, _ := arguments.Pack(
-			b128.Bytes(shash.Int),
-			[2]string(b128.Serialize(proof.BA)),
-			[2]string(b128.Serialize(proof.BS)),
-			[2]string(b128.Serialize(proof.A)),
-			[2]string(b128.Serialize(proof.B)),
+		bytes, perr := arguments.Pack(
+			nhash,
+			vBA,
+			vBS,
+			vA,
+			vB,
 		)
+		if perr != nil {
+			log.Println("packed failed, err:", perr.Error())
+			return nil
+		}
 		v = Hash(hex.EncodeToString(bytes))
+		log.Println("v hash = ", v.Text(16))
 	}
 	var phi, chi, psi, omega = make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m)
 	for i := 0; i < m; i++ {
@@ -469,19 +528,20 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		psi[i] = b128.RandomScalar()
 		omega[i] = b128.RandomScalar()
 	}
+	log.Println("m = ", m)
 	NP, NQ := make([]*FieldVector, m), make([]*FieldVector, m)
 	{
-		var P, Q = make([][]*ebigint.NBigInt, 0), make([][]*ebigint.NBigInt, 0)
+		var P = NewPList()
+		var Q = NewPList()
 		this.RecursivePolynomials(P, NewPolynomial(nil), a.GetVector()[0:m], b.GetVector()[0:m])
 		this.RecursivePolynomials(Q, NewPolynomial(nil), a.GetVector()[m:], b.GetVector()[m:])
-
 		for k := 0; k < m; k++ {
 			tmpPv := make([]*ebigint.NBigInt, 0)
 			tmpQv := make([]*ebigint.NBigInt, 0)
-			for _, pi := range P {
+			for _, pi := range P.data {
 				tmpPv = append(tmpPv, pi[k])
 			}
-			for _, qi := range Q {
+			for _, qi := range Q.data {
 				tmpQv = append(tmpQv, qi[k])
 			}
 			NP[k] = NewFieldVector(tmpPv)
@@ -556,6 +616,8 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			vPow = vPow.RedMul(v)
 		}
 	}
+	log.Println("vPow = ", vPow.Text(16))
+
 	var w *ebigint.NBigInt
 	{
 		{
@@ -588,49 +650,18 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 					Type: bytes32_2ST,
 				},
 			}
-			//proof.CLnG.map(bn128.serialize),
-			v_CLnG := make([][2]string, len(proof.CLnG))
-			for i := 0; i < len(v_CLnG); i++ {
-				v_CLnG[i] = [2]string(b128.Serialize(proof.CLnG[i]))
-			}
-			//proof.CRnG.map(bn128.serialize),
-			v_CRnG := make([][2]string, len(proof.CRnG))
-			for i := 0; i < len(v_CRnG); i++ {
-				v_CRnG[i] = [2]string(b128.Serialize(proof.CRnG[i]))
-			}
-			//proof.C_0G.map(bn128.serialize),
-			v_C_0G := make([][2]string, len(proof.C_0G))
-			for i := 0; i < len(v_C_0G); i++ {
-				v_C_0G[i] = [2]string(b128.Serialize(proof.C_0G[i]))
-			}
-			//proof.DG.map(bn128.serialize),
-			v_DG := make([][2]string, len(proof.DG))
-			for i := 0; i < len(v_DG); i++ {
-				v_DG[i] = [2]string(b128.Serialize(proof.DG[i]))
-			}
-			//proof.y_0G.map(bn128.serialize),
-			v_y_0G := make([][2]string, len(proof.y_0G))
-			for i := 0; i < len(v_y_0G); i++ {
-				v_y_0G[i] = [2]string(b128.Serialize(proof.y_0G[i]))
-			}
-			//proof.gG.map(bn128.serialize),
-			v_gG := make([][2]string, len(proof.gG))
-			for i := 0; i < len(v_gG); i++ {
-				v_gG[i] = [2]string(b128.Serialize(proof.gG[i]))
-			}
-			//proof.C_XG.map(bn128.serialize),
-			v_C_XG := make([][2]string, len(proof.C_XG))
-			for i := 0; i < len(v_C_XG); i++ {
-				v_C_XG[i] = [2]string(b128.Serialize(proof.C_XG[i]))
-			}
-			//proof.y_XG.map(bn128.serialize),
-			v_y_XG := make([][2]string, len(proof.y_XG))
-			for i := 0; i < len(v_y_XG); i++ {
-				v_y_XG[i] = [2]string(b128.Serialize(proof.y_XG[i]))
-			}
+			var v_v = parseBigInt2ABI_Bytes32(v)
+			var v_CLnG = parsePoints2ABI_Bytes32_2S(proof.CLnG)
+			var v_CRnG = parsePoints2ABI_Bytes32_2S(proof.CRnG)
+			var v_C_0G = parsePoints2ABI_Bytes32_2S(proof.C_0G)
+			var v_DG = parsePoints2ABI_Bytes32_2S(proof.DG)
+			var v_y_0G = parsePoints2ABI_Bytes32_2S(proof.y_0G)
+			var v_gG = parsePoints2ABI_Bytes32_2S(proof.gG)
+			var v_C_XG = parsePoints2ABI_Bytes32_2S(proof.C_XG)
+			var v_y_XG = parsePoints2ABI_Bytes32_2S(proof.y_XG)
 
 			bytes, _ := arguments.Pack(
-				b128.Bytes(v.Int),
+				v_v,
 				v_CLnG,
 				v_CRnG,
 				v_C_0G,
@@ -641,6 +672,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 				v_y_XG,
 			)
 			w = Hash(hex.EncodeToString(bytes))
+			log.Println("transfer proof w = ", w.Text(16))
 		}
 	}
 	proof.f = b.Times(w).Add(a)
@@ -655,9 +687,10 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		}
 
 		bytes, _ := arguments.Pack(
-			b128.Bytes(w.Int),
+			parseBigInt2ABI_Bytes32(w),
 		)
 		y = Hash(hex.EncodeToString(bytes))
+		log.Println("transfer proof y = ", y.Text(16))
 	}
 	var vys = make([]*ebigint.NBigInt, 0)
 	{
@@ -710,16 +743,14 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			},
 		}
 		vt := polyCommitment.GetCommitments()
-		vvt := make([][2]string, 0)
-		for i := 0; i < len(vt); i++ {
-			vvt = append(vvt, [2]string(b128.Serialize(vt[i])))
-		}
+		vvt := parsePoints2ABI_Bytes32_2S(vt)
 		bytes, _ := arguments.Pack(
-			b128.Bytes(z.Int),
+			parseBigInt2ABI_Bytes32(z),
 			vvt[0],
 			vvt[1],
 		)
 		x = Hash(hex.EncodeToString(bytes))
+		log.Println("transfer proof x = ", x.Text(16))
 	}
 	var evalCommit = polyCommitment.Evaluate(x)
 	proof.tHat = evalCommit.GetX()
@@ -756,6 +787,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			q = q.Add(NQ[k].Times(wPow))
 			wPow = wPow.RedMul(w)
 		}
+		log.Println("transfer proof wPow = ", wPow.Text(16))
 
 		CRnR = CRnR.Add(statement.CRn.GetVector()[witness.index[0]].Mul(wPow))
 		y_0R = y_0R.Add(statement.Y.GetVector()[witness.index[0]].Mul(wPow))
