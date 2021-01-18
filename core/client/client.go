@@ -48,15 +48,32 @@ func CreateAccount(secret string) string {
 type SignParam struct {
 	ZSCAddr   string       `json:"address"`
 	Accounter core.Account `json:"account"`
+	Random    string       `json:"random"`
 }
 
 func Sign(input string) string {
 	var param SignParam
-	if e := json.Unmarshal([]byte(input), &param); e != nil {
+	var c, s *ebigint.NBigInt
+	var e error
+	if e = json.Unmarshal([]byte(input), &param); e != nil {
 		log.Printf("unmarshal param failed, err:%s\n", e.Error())
 		return ""
 	}
-	c, s, e := core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+	if param.Random != "" {
+		if strings.HasPrefix(param.Random, "0x") {
+			param.Random = param.Random[2:]
+		}
+		nk, ok := new(big.Int).SetString(param.Random, 16)
+		if !ok {
+			c, s, e = core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+		} else {
+			sign_k := ebigint.ToNBigInt(nk)
+			c, s, e = core.SignWithRandom(common.FromHex(param.ZSCAddr), param.Accounter, sign_k)
+		}
+	} else {
+		c, s, e = core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
+	}
+
 	if e != nil {
 		log.Println("sign failed error:", e.Error())
 		return ""

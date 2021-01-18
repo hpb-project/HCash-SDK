@@ -26,7 +26,7 @@ func FromBytes(buf []byte) *NBigInt {
 
 func (this *NBigInt) String() string {
 	s := this.Int.Text(16)
-	return s
+	return "0x" + s
 }
 
 func (this *NBigInt) Red(m *big.Int) *Red {
