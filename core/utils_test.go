@@ -57,7 +57,7 @@ func TestU(t *testing.T) {
 func TestCreateAccount(t *testing.T) {
 	nx, _ := new(big.Int).SetString("23537dd8704f6cfdfdb0256c3d1c4a6012fb6ae05102762d8d257d5e1ef4fc16", 16)
 	account := CreateAccountWithX(ebigint.ToNBigInt(nx))
-	assert.Equal(t, account.X.String(), "23537dd8704f6cfdfdb0256c3d1c4a6012fb6ae05102762d8d257d5e1ef4fc16")
+	assert.Equal(t, account.X.String(), "0x23537dd8704f6cfdfdb0256c3d1c4a6012fb6ae05102762d8d257d5e1ef4fc16")
 	assert.Equal(t, account.Y.GX(), "0x012984cced2b6375c23249ea95e451080219a4215b7bfcc20531673d005c8ff0")
 	assert.Equal(t, account.Y.GY(), "0x0fb0f2a0c61aca0f0c20f4ac53f55a1f2a8a18b7bc9b3527a4b15173201df29c")
 }
