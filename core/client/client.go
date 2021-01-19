@@ -10,7 +10,6 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"strings"
 )
 
 var (
@@ -24,10 +23,7 @@ var (
 func CreateAccount(secret string) string {
 	var account core.Account
 	if secret != "" {
-		if strings.HasPrefix(secret, "0x") {
-			secret = secret[2:]
-		}
-		x, _ := big.NewInt(0).SetString(secret, 16)
+		x, _ := new(big.Int).SetString(common.HexWithout0x(secret), 16)
 		account.X = ebigint.ToNBigInt(x).ToRed(b128.Q())
 		account.Y = b128.Serialize(b128.CurveG().Mul(account.X))
 	} else {
@@ -60,10 +56,7 @@ func Sign(input string) string {
 		return ""
 	}
 	if param.Random != "" {
-		if strings.HasPrefix(param.Random, "0x") {
-			param.Random = param.Random[2:]
-		}
-		nk, ok := new(big.Int).SetString(param.Random, 16)
+		nk, ok := new(big.Int).SetString(common.HexWithout0x(param.Random), 16)
 		if !ok {
 			c, s, e = core.Sign(common.FromHex(param.ZSCAddr), param.Accounter)
 		} else {
@@ -106,7 +99,7 @@ func ReadBalance(param string) int {
 		log.Printf("unmarshal param failed, err:%s\n", e.Error())
 		return 0
 	}
-	x := ebigint.FromBytes(common.FromHex(p.X)).ForceRed(b128.Q())
+	x := ebigint.FromHex(p.X).ForceRed(b128.Q())
 
 	return core.ReadBalance(p.CL, p.CR, x)
 }
@@ -258,7 +251,7 @@ func TransferProof(param string) string {
 	witness.R = r.Text(16)
 	witness.SK = p.SK
 	var proof = core.ProveTransfer(statement, witness)
-	sk := ebigint.FromBytes(common.FromHex(p.SK))
+	sk := ebigint.FromHex(p.SK)
 	var u = b128.Serialize(core.U(p.Epoch, sk))
 
 	type Response struct {

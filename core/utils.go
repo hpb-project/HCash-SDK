@@ -6,12 +6,12 @@ import (
 	"errors"
 	abi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"log"
 	"math/big"
-	"strings"
 )
 
 type Account struct {
@@ -49,11 +49,7 @@ func (a *Account) UnmarshalJSON(input []byte) error {
 		return err
 	}
 
-	if strings.HasPrefix(p.X, "0x") {
-		p.X = p.X[2:]
-	}
-
-	nx, ok := new(big.Int).SetString(p.X, 16)
+	nx, ok := new(big.Int).SetString(common.HexWithout0x(p.X), 16)
 	if !ok {
 		return errors.New("invalid hex string for x field")
 	}
@@ -83,10 +79,7 @@ func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 
 func Hash(str string) *ebigint.NBigInt {
 	// soliditySha3
-	if strings.HasPrefix(str, "0x") { // auto change to u256
-		str = str[2:]
-	}
-	d, _ := hex.DecodeString(str)
+	d := common.FromHex(str)
 	hash := crypto.Keccak256(d)
 	//log.Println("keccak256 hash = ", hex.EncodeToString(hash))
 	return ebigint.FromBytes(hash).ToRed(b128.Q())
@@ -223,10 +216,7 @@ utils.mapInto = (seed) => { // seed is flattened 0x + hex string
 */
 // seed is flattened 0x + hex string
 func MapInto(seed string) Point {
-	if strings.HasPrefix(seed, "0x") {
-		seed = seed[2:]
-	}
-	n, _ := big.NewInt(0).SetString(seed, 16)
+	n, _ := new(big.Int).SetString(common.HexWithout0x(seed), 16)
 	seed_red := ebigint.ToNBigInt(n).ToRed(b128.P())
 
 	add_one := new(big.Int).Add(b128.P().Int, big.NewInt(1))

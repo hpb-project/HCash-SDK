@@ -15,6 +15,10 @@ var (
 	GROUP_MODULUS, _ = new(big.Int).SetString("30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001", 16)
 	bigzero          = "0x0000000000000000000000000000000000000000000000000000000000000000"
 	B_MAX            = 4294967295
+
+	// for test
+	special_Random  = false
+	special_RandomV = ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q())
 )
 
 type BN128 struct {
@@ -140,10 +144,15 @@ func (b *BN128) Zero() Point {
 }
 
 func (b *BN128) RandomScalar() *ebigint.NBigInt {
-	fq := bn256.NewFq(b.Q().Int)
-	r, _ := fq.Rand()
-	nr := ebigint.ToNBigInt(r).ForceRed(b.Q())
-	return nr
+	if special_Random {
+		// for test code for zether_test
+		return special_RandomV
+	} else {
+		fq := bn256.NewFq(b.Q().Int)
+		r, _ := fq.Rand()
+		nr := ebigint.ToNBigInt(r).ForceRed(b.Q())
+		return nr
+	}
 }
 
 func (b *BN128) Bytes(i *big.Int) string {

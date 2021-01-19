@@ -1,6 +1,7 @@
 package ebigint
 
 import (
+	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/core/bn256"
 	"math/big"
 )
@@ -21,6 +22,11 @@ func NewNBigInt(v int64) *NBigInt {
 
 func FromBytes(buf []byte) *NBigInt {
 	b := big.NewInt(0).SetBytes(buf)
+	return &NBigInt{Int: b, r: nil}
+}
+
+func FromHex(str string) *NBigInt {
+	b := new(big.Int).SetBytes(common.FromHex(str))
 	return &NBigInt{Int: b, r: nil}
 }
 
