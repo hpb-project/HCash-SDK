@@ -2,6 +2,8 @@ package core
 
 import (
 	"encoding/hex"
+	"fmt"
+	//	"log"
 	"reflect"
 
 	//"github.com/ethereum/go-ethereum/accounts/abi"
@@ -93,6 +95,16 @@ func NewFieldVector(vector []*ebigint.NBigInt) *FieldVector {
 	fv.vector = vector
 
 	return fv
+}
+
+func (f *FieldVector) String() string {
+	str := "{field:"
+	for i, e := range f.vector {
+		t := fmt.Sprintf("%d-%s\n", i, e.Text(16))
+		str += t
+	}
+	str += "}"
+	return str
 }
 
 func (f *FieldVector) GetVector() []*ebigint.NBigInt {
@@ -332,7 +344,7 @@ func (g *GeneratorVector) Times(constant *ebigint.NBigInt) *GeneratorVector {
 }
 
 func (g *GeneratorVector) Extract(parity int) *GeneratorVector {
-	var nInnards = make([]Point, len(g.vector))
+	var nInnards = make([]Point, 0)
 	for i, elem := range g.vector {
 		if i%2 == parity {
 			nInnards = append(nInnards, elem)
@@ -353,6 +365,16 @@ func (g *GeneratorVector) Concat(other *GeneratorVector) *GeneratorVector {
 	}
 
 	return NewGeneratorVector(nInnards)
+}
+
+func (g *GeneratorVector) String() string {
+	str := "{vector:"
+	for i, v := range g.vector {
+		t := fmt.Sprintf("%d-%s\n", i, v.String())
+		str += t
+	}
+	str += "}"
+	return str
 }
 
 type Convolver struct {

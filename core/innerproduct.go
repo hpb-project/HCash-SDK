@@ -77,9 +77,9 @@ func generateProof(base *GeneratorParams, P Point, as *FieldVector, bs *FieldVec
 	}
 
 	bytes, _ := arguments.Pack(
-		b128.Bytes(previousChallenge.Int),
-		[2]string(b128.Serialize(L)),
-		[2]string(b128.Serialize(R)),
+		parseBigInt2ABI_Bytes32(previousChallenge),
+		parsePoint2ABI_Bytes32_2(L),
+		parsePoint2ABI_Bytes32_2(R),
 	)
 	var x = Hash(hex.EncodeToString(bytes))
 	var xInv = x.RedInvm()
