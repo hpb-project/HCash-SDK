@@ -139,12 +139,8 @@ func (p *PList) Len() int {
 
 func (this ZetherProver) RecursivePolynomials(plist *PList, accum *Polynomial,
 	a []*ebigint.NBigInt, b []*ebigint.NBigInt) {
-	log.Println("enter RecursivePolynomials len(plist) = ", plist.Len(), "len(a) = ", len(a), "len(b) = ", len(b))
-	defer log.Println("exit RecursivePolynomials")
 	if len(a) == 0 {
 		plist.Append(accum.coefficients)
-		//plist = append(plist, accum.coefficients)
-		log.Println("len   plist = ", plist.Len())
 		return
 	}
 
@@ -246,26 +242,18 @@ func (this ZetherProver) toWitness(iwitness TransferWitness) (*interTransferWitn
 		witness.index[i] = iwitness.Index[i]
 	}
 
-	str_sk := iwitness.SK
-	if strings.HasPrefix(str_sk, "0x") {
-		str_sk = str_sk[2:]
-	}
-	sk, ok := big.NewInt(0).SetString(str_sk, 16)
+	sk, ok := new(big.Int).SetString(common.HexWithout0x(iwitness.SK), 16)
 	if !ok {
 		return nil, errors.New("witness sk is invalid")
 	} else {
 		witness.sk = ebigint.ToNBigInt(sk).ForceRed(b128.Q())
 	}
 
-	str_random := iwitness.R
-	if strings.HasPrefix(str_random, "0x") {
-		str_random = str_random[2:]
-	}
-	random, ok := big.NewInt(0).SetString(str_random, 16)
+	random, ok := new(big.Int).SetString(common.HexWithout0x(iwitness.R), 16)
 	if !ok {
-		return nil, errors.New("witness sk is invalid")
+		return nil, errors.New("witness random is invalid")
 	} else {
-		witness.sk = ebigint.ToNBigInt(random).ForceRed(b128.Q())
+		witness.r = ebigint.ToNBigInt(random).ForceRed(b128.Q())
 	}
 	return witness, nil
 }
@@ -339,7 +327,6 @@ func statementHash(istatement TransferStatement) *ebigint.NBigInt {
 		log.Println("abi packed failed, err:", perr.Error())
 		return nil
 	}
-	//log.Println("statement packed bytes = ", hex.EncodeToString(bytes))
 
 	var statementHash = Hash(hex.EncodeToString(bytes))
 	return statementHash
@@ -350,7 +337,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	proof := &ZetherProof{}
 
 	shash := statementHash(istatement)
-	log.Println("statementhash = ", shash.Text(16))
+
 	var statement *interTransferStatement
 	var witness *interTransferWitness
 
@@ -398,9 +385,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 	proof.BS = this.params.Commit(rho, sL, sR)
 
 	var N = statement.Y.Length()
-	//if (N & (N-1)) {
-	//	throw "Size must be a power of 2!"
-	//}
 
 	var m = big.NewInt(int64(N)).BitLen() - 1
 	var r_A = b128.RandomScalar()
@@ -474,7 +458,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		var vBA, vBS, vA, vB ABI_Bytes32_2
 		{
 			p := b128.Serialize(proof.BA)
-			log.Println("transfer proof BA = ", p)
 			x := common.FromHex(p.GX())
 			y := common.FromHex(p.GY())
 			copy(vBA[0][:], x[:])
@@ -482,7 +465,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		}
 		{
 			p := b128.Serialize(proof.BS)
-			log.Println("transfer proof BS = ", p)
 			x := common.FromHex(p.GX())
 			y := common.FromHex(p.GY())
 			copy(vBS[0][:], x[:])
@@ -490,7 +472,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		}
 		{
 			p := b128.Serialize(proof.A)
-			log.Println("transfer proof A = ", p)
 			x := common.FromHex(p.GX())
 			y := common.FromHex(p.GY())
 			copy(vA[0][:], x[:])
@@ -498,7 +479,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		}
 		{
 			p := b128.Serialize(proof.B)
-			log.Println("transfer proof B = ", p)
+			//log.Println("transfer proof B = ", p)
 			x := common.FromHex(p.GX())
 			y := common.FromHex(p.GY())
 			copy(vB[0][:], x[:])
@@ -519,7 +500,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			return nil
 		}
 		v = Hash(hex.EncodeToString(bytes))
-		log.Println("v hash = ", v.Text(16))
+		//log.Println("v hash = ", v.Text(16))
 	}
 	var phi, chi, psi, omega = make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m), make([]*ebigint.NBigInt, m)
 	for i := 0; i < m; i++ {
@@ -528,7 +509,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 		psi[i] = b128.RandomScalar()
 		omega[i] = b128.RandomScalar()
 	}
-	log.Println("m = ", m)
+	//log.Println("m = ", m)
 	NP, NQ := make([]*FieldVector, m), make([]*FieldVector, m)
 	{
 		var P = NewPList()
@@ -616,7 +597,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			vPow = vPow.RedMul(v)
 		}
 	}
-	log.Println("vPow = ", vPow.Text(16))
+	//log.Println("vPow = ", vPow.Text(16))
 
 	var w *ebigint.NBigInt
 	{
@@ -672,7 +653,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 				v_y_XG,
 			)
 			w = Hash(hex.EncodeToString(bytes))
-			log.Println("transfer proof w = ", w.Text(16))
 		}
 	}
 	proof.f = b.Times(w).Add(a)
@@ -690,7 +670,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			parseBigInt2ABI_Bytes32(w),
 		)
 		y = Hash(hex.EncodeToString(bytes))
-		log.Println("transfer proof y = ", y.Text(16))
+		//log.Println("transfer proof y = ", y.Text(16))
 	}
 	var vys = make([]*ebigint.NBigInt, 0)
 	{
@@ -750,7 +730,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			vvt[1],
 		)
 		x = Hash(hex.EncodeToString(bytes))
-		log.Println("transfer proof x = ", x.Text(16))
 	}
 	var evalCommit = polyCommitment.Evaluate(x)
 	proof.tHat = evalCommit.GetX()
@@ -787,7 +766,6 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			q = q.Add(NQ[k].Times(wPow))
 			wPow = wPow.RedMul(w)
 		}
-		log.Println("transfer proof wPow = ", wPow.Text(16))
 
 		CRnR = CRnR.Add(statement.CRn.GetVector()[witness.index[0]].Mul(wPow))
 		y_0R = y_0R.Add(statement.Y.GetVector()[witness.index[0]].Mul(wPow))
@@ -874,13 +852,13 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			},
 		}
 		bytes, _ := arguments.Pack(
-			b128.Bytes(x.Int),
-			[2]string(b128.Serialize(A_y)),
-			[2]string(b128.Serialize(A_D)),
-			[2]string(b128.Serialize(A_b)),
-			[2]string(b128.Serialize(A_X)),
-			[2]string(b128.Serialize(A_t)),
-			[2]string(b128.Serialize(A_u)),
+			parseBigInt2ABI_Bytes32(x),
+			parsePoint2ABI_Bytes32_2(A_y),
+			parsePoint2ABI_Bytes32_2(A_D),
+			parsePoint2ABI_Bytes32_2(A_b),
+			parsePoint2ABI_Bytes32_2(A_X),
+			parsePoint2ABI_Bytes32_2(A_t),
+			parsePoint2ABI_Bytes32_2(A_u),
 		)
 		proof.c = Hash(hex.EncodeToString(bytes))
 	}
@@ -904,7 +882,7 @@ func (this ZetherProver) GenerateProof(istatement TransferStatement, iwitness Tr
 			},
 		}
 		bytes, _ := arguments.Pack(
-			b128.Bytes(proof.c.Int),
+			parseBigInt2ABI_Bytes32(proof.c),
 		)
 		o := Hash(hex.EncodeToString(bytes))
 
