@@ -76,10 +76,28 @@ func generateProof(base *GeneratorParams, P Point, as *FieldVector, bs *FieldVec
 		},
 	}
 
+	var pre_int [32]byte
+	pre_bytes, _ := hex.DecodeString(b128.Bytes(previousChallenge.Int)[2:])
+	copy(pre_int[:], pre_bytes[:])
+
+	l_1 := b128.Serialize(L)
+	var abi_l_x, abi_l_y ABI_Bytes32
+	l_x, _ := hex.DecodeString(l_1.GX()[2:])
+	l_y, _ := hex.DecodeString(l_1.GY()[2:])
+	copy(abi_l_x[:], l_x[:])
+	copy(abi_l_y[:], l_y[:])
+
+	r_1 := b128.Serialize(R)
+	var abi_r_x, abi_r_y ABI_Bytes32
+	r_x, _ := hex.DecodeString(r_1.GX()[2:])
+	r_y, _ := hex.DecodeString(r_1.GY()[2:])
+	copy(abi_r_x[:], r_x[:])
+	copy(abi_r_y[:], r_y[:])
+
 	bytes, _ := arguments.Pack(
-		parseBigInt2ABI_Bytes32(previousChallenge),
-		parsePoint2ABI_Bytes32_2(L),
-		parsePoint2ABI_Bytes32_2(R),
+		pre_int,
+		[2]ABI_Bytes32{abi_l_x, abi_l_y},
+		[2]ABI_Bytes32{abi_r_x, abi_r_y},
 	)
 	var x = Hash(hex.EncodeToString(bytes))
 	var xInv = x.RedInvm()
