@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"math/big"
 	"strings"
@@ -90,7 +91,6 @@ func (burn BurnProver) tointerBurnStatement(istatement BurnStatement) (*interBur
 func (burn BurnProver) tointerBurnWitness(iwitness BurnWitness) (*interBurnWitness, error) {
 	witness := &interBurnWitness{}
 	witness.bDiff = ebigint.NewNBigInt(int64(iwitness.BDiff)).ToRed(b128.Q())
-
 	str_sk := iwitness.SK
 	if strings.HasPrefix(str_sk, "0x") {
 		str_sk = str_sk[2:]
@@ -143,28 +143,42 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 			Type: address_T,
 		},
 	}
+	address, _ := hex.DecodeString(istatement.Sender)
+	var addr = ETH_ADDR{}
+	copy(addr[:], address[:])
 
-	bytes, _ := arguments.Pack(
-		istatement.CLn,
-		istatement.CRn,
-		istatement.Y,
-		istatement.Epoch,
-		istatement.Sender)
+	epoch := new(big.Int).SetInt64(int64(istatement.Epoch))
 
-	var statementHash = Hash(hex.EncodeToString(bytes))
+	bytes, err := arguments.Pack(
+		parsePoint2ABI_Bytes32_2(statement.CLn),
+		parsePoint2ABI_Bytes32_2(statement.CRn),
+		parsePoint2ABI_Bytes32_2(statement.Y),
+		epoch,
+		addr)
+	fmt.Println("err=", err)
+	strbytes := hex.EncodeToString(bytes)
+
+	var statementHash = Hash(strbytes)
 
 	splits := strings.Split(witness.bDiff.Text(2), "")
-	//println("len splits = ", len(splits), "xx ", splits)
+
 	reversed := Reverse(splits)
-	nArray := make([]*ebigint.NBigInt, len(reversed))
-	for i, r := range reversed {
-		n, _ := big.NewInt(0).SetString(r, 2)
+	al_reversed := [32]string{""}
+	copy(al_reversed[:], reversed)
+	fmt.Println("al_re=", len(al_reversed))
+	nArray := make([]*ebigint.NBigInt, len(al_reversed))
+	for i := 0; i < 32; i++ {
+		n := big.NewInt(0)
+		n.SetString(al_reversed[i], 2)
 		nArray[i] = ebigint.ToNBigInt(n).ToRed(b128.Q())
 	}
+
 	var aL = NewFieldVector(nArray)
 	var aR = aL.Plus(ebigint.NewNBigInt(1).ToRed(b128.Q()).RedNeg())
+
 	var alpha = b128.RandomScalar()
 	proof.BA = burn.params.Commit(alpha, aL, aR)
+	fmt.Println("ba=", proof.BA.String())
 
 	var sL, sR *FieldVector
 	{
@@ -178,8 +192,10 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		sL = NewFieldVector(vsL)
 		sR = NewFieldVector(vsR)
 	}
+
 	var rho = b128.RandomScalar()
 	proof.BS = burn.params.Commit(rho, sL, sR)
+	fmt.Println("bs=", proof.BS.String())
 
 	var y *ebigint.NBigInt
 	{
@@ -196,13 +212,14 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		}
 
 		ybytes, _ := argumentsy.Pack(
-			b128.Bytes(statementHash.Int),
-			[2]string(b128.Serialize(proof.BA)),
-			[2]string(b128.Serialize(proof.BS)),
+			parseBigInt2ABI_Bytes32(statementHash),
+			parsePoint2ABI_Bytes32_2(proof.BA),
+			parsePoint2ABI_Bytes32_2(proof.BS),
 		)
-
 		y = Hash(hex.EncodeToString(ybytes))
 	}
+
+	fmt.Println("y=", y.String())
 
 	var vys = make([]*ebigint.NBigInt, 0)
 	vys = append(vys, ebigint.NewNBigInt(1).ToRed(b128.Q()))
@@ -214,6 +231,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 
 	var zs = make([]*ebigint.NBigInt, 0)
 	zs = append(zs, z.RedExp(big.NewInt(2)))
+
 	var twos = make([]*ebigint.NBigInt, 0)
 	twos = append(twos, ebigint.NewNBigInt(1).ToRed(b128.Q()))
 	for i := 1; i < 32; i++ {
@@ -240,17 +258,21 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		},
 	}
 	var pcment = polyCommitment.GetCommitments()
+
 	xbytes, _ := argumentsx.Pack(
-		b128.Bytes(z.Int),
-		[2]string(b128.Serialize(pcment[0])),
-		[2]string(b128.Serialize(pcment[1])),
+		parseBigInt2ABI_Bytes32(z),
+		parsePoint2ABI_Bytes32_2(pcment[0]),
+		parsePoint2ABI_Bytes32_2(pcment[1]),
 	)
+
 	var x = Hash(hex.EncodeToString(xbytes))
+	fmt.Println("x=", x.String())
 
 	var evalCommit = polyCommitment.Evaluate(x)
 	proof.tHat = evalCommit.GetX()
 	var tauX = evalCommit.GetR()
 	proof.mu = alpha.RedAdd(rho.RedMul(x))
+	fmt.Println("proof.mu=", proof.mu.String())
 
 	var k_sk = b128.RandomScalar()
 	var k_b = b128.RandomScalar()
@@ -279,13 +301,16 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		},
 	}
 	cbytes, _ := argumentsproofc.Pack(
-		b128.Bytes(x.Int),
-		[2]string(b128.Serialize(A_y)),
-		[2]string(b128.Serialize(A_b)),
-		[2]string(b128.Serialize(A_t)),
-		[2]string(b128.Serialize(A_u)),
+		parseBigInt2ABI_Bytes32(x),
+		parsePoint2ABI_Bytes32_2(A_y),
+		parsePoint2ABI_Bytes32_2(A_b),
+		parsePoint2ABI_Bytes32_2(A_t),
+		parsePoint2ABI_Bytes32_2(A_u),
 	)
+	
 	proof.c = Hash(hex.EncodeToString(cbytes))
+	fmt.Println("proof.c=", proof.c.String())
+
 	proof.s_sk = k_sk.RedAdd(proof.c.RedMul(witness.sk))
 	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.bDiff.RedMul(zs[0])))
 	proof.s_tau = k_tau.RedAdd(proof.c.RedMul(tauX))
@@ -303,11 +328,13 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		},
 	}
 	obytes, _ := argumento.Pack(
-		b128.Bytes(proof.c.Int),
+		parseBigInt2ABI_Bytes32(proof.c),
 	)
+
 	var o = Hash(hex.EncodeToString(obytes))
 	var u_x = burn.params.GetG().Mul(o)
 	P = P.Add(u_x.Mul(proof.tHat))
+	
 	var primeBase = NewGeneratorParams(u_x, gs, hPrimes)
 	var ipStatement = InnerProduct_statement{}
 	ipStatement.PrimeBase = primeBase
@@ -317,5 +344,6 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	ipWitness.R = rPoly.Evaluate(x)
 	proof.ipProof = burn.ipProver.GenerateProof(ipStatement, ipWitness, o)
 
+	fmt.Println("ipproof=", proof.ipProof.Serialize())
 	return proof
 }
