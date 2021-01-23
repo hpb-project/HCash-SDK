@@ -562,12 +562,7 @@ func NewPolyCommitment(params GeneratorParams, coefficients []*ebigint.NBigInt) 
 	pc.coefficientCommitments = append(pc.coefficientCommitments, tmp)
 
 	for _, coefficient := range coefficients[1:] {
-		//rand := b128.RandomScalar()
-		//test start
-		rho_str := "296d0844cdb0dedfbd26985923dba3b0b275610c86f3d9d42d7b52399672ef1d"
-		rho_sk, _ := big.NewInt(0).SetString(rho_str, 16)
-		rand := ebigint.ToNBigInt(rho_sk).ForceRed(b128.Q())
-		//end
+		rand := b128.RandomScalar()
 		npc := NewPedersenCommitment(params, coefficient, rand)
 		pc.coefficientCommitments = append(pc.coefficientCommitments, npc)
 	}

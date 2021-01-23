@@ -85,18 +85,12 @@ func (burn BurnProver) tointerBurnStatement(istatement BurnStatement) (*interBur
 	statement.CRn = b128.UnSerialize(istatement.CRn)
 	statement.Y = b128.UnSerialize(istatement.Y)
 
-	fmt.Println("statement.CLn=", statement.CLn)
-	fmt.Println("statement.CRn=", statement.CRn)
-	fmt.Println("statement.Y=", statement.Y)
-	fmt.Println("statement.Epoch=", statement.Epoch)
-	fmt.Println("statement.Sender=", statement.Sender)
 	return statement, nil
 }
 
 func (burn BurnProver) tointerBurnWitness(iwitness BurnWitness) (*interBurnWitness, error) {
 	witness := &interBurnWitness{}
 	witness.bDiff = ebigint.NewNBigInt(int64(iwitness.BDiff)).ToRed(b128.Q())
-	fmt.Println("witness.bDiff=", witness.bDiff)
 	str_sk := iwitness.SK
 	if strings.HasPrefix(str_sk, "0x") {
 		str_sk = str_sk[2:]
@@ -153,7 +147,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var addr = ETH_ADDR{}
 	copy(addr[:], address[:])
 
-	fmt.Println("addr=", address)
+	
 	var abi_cln_x, abi_cln_y ABI_Bytes32
 	cln_x, _ := hex.DecodeString(istatement.CLn.GX()[2:])
 	cln_y, _ := hex.DecodeString(istatement.CLn.GY()[2:])
@@ -181,11 +175,8 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		addr)
 	fmt.Println("err=", err)
 	strbytes := hex.EncodeToString(bytes)
-	fmt.Println("strbytes=", strbytes)
-	var statementHash = Hash(strbytes)
-	fmt.Println("statementHash=", statementHash.String())
 
-	fmt.Println("bDiff=", witness.bDiff.Text(2))
+	var statementHash = Hash(strbytes)
 
 	splits := strings.Split(witness.bDiff.Text(2), "")
 
@@ -203,14 +194,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var aL = NewFieldVector(nArray)
 	var aR = aL.Plus(ebigint.NewNBigInt(1).ToRed(b128.Q()).RedNeg())
 
-	//test start
-	alpha_str := "27381656ea939ab8fdb4bba066a955ddf9505471cf6640cdbfa64570a7b774fa"
-	alpha_sk, _ := big.NewInt(0).SetString(alpha_str, 16)
-	alpha := ebigint.ToNBigInt(alpha_sk).ForceRed(b128.Q())
-	fmt.Println("alpha=", alpha.String())
-
-	//test end
-	//var alpha = b128.RandomScalar()
+	var alpha = b128.RandomScalar()
 	proof.BA = burn.params.Commit(alpha, aL, aR)
 	fmt.Println("ba=", proof.BA.String())
 
@@ -220,21 +204,14 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		var vsR = make([]*ebigint.NBigInt, 32)
 
 		for i := 0; i < 32; i++ {
-			// vsL[i] = b128.RandomScalar()
-			// vsR[i] = b128.RandomScalar()
-			vsL[i] = alpha
-			vsR[i] = alpha
+			vsL[i] = b128.RandomScalar()
+			vsR[i] = b128.RandomScalar()
 		}
 		sL = NewFieldVector(vsL)
 		sR = NewFieldVector(vsR)
 	}
 
-	//test start
-	rho_str := "296d0844cdb0dedfbd26985923dba3b0b275610c86f3d9d42d7b52399672ef1d"
-	rho_sk, _ := big.NewInt(0).SetString(rho_str, 16)
-	rho := ebigint.ToNBigInt(rho_sk).ForceRed(b128.Q())
-	//test end
-	//var rho = b128.RandomScalar()
+	var rho = b128.RandomScalar()
 	proof.BS = burn.params.Commit(rho, sL, sR)
 	fmt.Println("bs=", proof.BS.String())
 
@@ -275,7 +252,6 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 			[2]ABI_Bytes32{abi_ba_x, abi_ba_y},
 			[2]ABI_Bytes32{abi_bs_x, abi_bs_y},
 		)
-		fmt.Println("ybytes=", hex.EncodeToString(ybytes))
 		y = Hash(hex.EncodeToString(ybytes))
 	}
 
@@ -283,21 +259,18 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 
 	var vys = make([]*ebigint.NBigInt, 0)
 	vys = append(vys, ebigint.NewNBigInt(1).ToRed(b128.Q()))
-	fmt.Println("vys=", ebigint.NewNBigInt(1).ToRed(b128.Q()).String())
 	for i := 1; i < 32; i++ {
-		fmt.Println("i=", i, " vy=", vys[i-1].RedMul(y).String())
 		vys = append(vys, vys[i-1].RedMul(y))
 	}
 	ys := NewFieldVector(vys)
 	z := Hash(b128.Bytes(y.Int))
-	fmt.Println("z=", z.String())
+
 	var zs = make([]*ebigint.NBigInt, 0)
 	zs = append(zs, z.RedExp(big.NewInt(2)))
-	fmt.Println("zs=", z.RedExp(big.NewInt(2)).String())
+
 	var twos = make([]*ebigint.NBigInt, 0)
 	twos = append(twos, ebigint.NewNBigInt(1).ToRed(b128.Q()))
 	for i := 1; i < 32; i++ {
-		fmt.Println("i=", i, "two=", twos[i-1].RedMul(ebigint.NewNBigInt(2).ToRed(b128.Q())).String())
 		twos = append(twos, twos[i-1].RedMul(ebigint.NewNBigInt(2).ToRed(b128.Q())))
 	}
 
@@ -344,7 +317,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		[2]ABI_Bytes32{abi_pc0_x, abi_pc0_y},
 		[2]ABI_Bytes32{abi_pc1_x, abi_pc1_y},
 	)
-	fmt.Println("xbytes=", hex.EncodeToString(xbytes))
+
 	var x = Hash(hex.EncodeToString(xbytes))
 	fmt.Println("x=", x.String())
 
@@ -354,24 +327,15 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	proof.mu = alpha.RedAdd(rho.RedMul(x))
 	fmt.Println("proof.mu=", proof.mu.String())
 
-	// var k_sk = b128.RandomScalar()
-	// var k_b = b128.RandomScalar()
-	// var k_tau = b128.RandomScalar()
-	//testrandom
-	var k_sk = rho
-	var k_b = rho
-	var k_tau = rho
+	var k_sk = b128.RandomScalar()
+	var k_b = b128.RandomScalar()
+	var k_tau = b128.RandomScalar()
 
 	var A_y = burn.params.GetG().Mul(k_sk)
 	var A_b = burn.params.GetG().Mul(k_b).Add(statement.CRn.Mul(zs[0]).Mul(k_sk))
 	var A_t = burn.params.GetG().Mul(k_b.RedNeg()).Add(burn.params.GetH().Mul(k_tau))
 	var A_u = GEpoch(statement.Epoch).Mul(k_sk)
 
-	fmt.Println("x=", x.String())
-	fmt.Println("A_y=", A_y)
-	fmt.Println("A_b=", A_b)
-	fmt.Println("A_t=", A_t)
-	fmt.Println("A_u=", A_u)
 	var x_int [32]byte
 	x_bytes, _ := hex.DecodeString(b128.Bytes(x.Int)[2:])
 	copy(x_int[:], x_bytes[:])
@@ -428,7 +392,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		[2]ABI_Bytes32{abi_at_x, abi_at_y},
 		[2]ABI_Bytes32{abi_au_x, abi_au_y},
 	)
-	fmt.Println("cbytes=", hex.EncodeToString(cbytes))
+	
 	proof.c = Hash(hex.EncodeToString(cbytes))
 	fmt.Println("proof.c=", proof.c.String())
 
@@ -436,15 +400,9 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	proof.s_b = k_b.RedAdd(proof.c.RedMul(witness.bDiff.RedMul(zs[0])))
 	proof.s_tau = k_tau.RedAdd(proof.c.RedMul(tauX))
 
-	fmt.Println("proof.s_sk=", proof.s_sk.String())
-	fmt.Println("proof.s_b=", proof.s_b.String())
-	fmt.Println("proof.s_tau=", proof.s_tau.String())
 	var gs = burn.params.GetGS()
 	var hPrimes = burn.params.GetHS().Hadamard(ys.Invert())
 	var hExp = ys.Times(z).Add(twoTimesZs)
-	fmt.Println("gs=", gs)
-	fmt.Println("hPrimes=", hPrimes)
-	fmt.Println("hExp=", hExp)
 
 	var P = proof.BA.Add(proof.BS.Mul(x)).Add(gs.Sum().Mul(z.RedNeg())).Add(hPrimes.Commit(hExp))
 	P = P.Add(burn.params.GetH().Mul(proof.mu.RedNeg())) // Statement P of protocol 1. should this be included in the calculation of v...?
@@ -461,17 +419,11 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	obytes, _ := argumento.Pack(
 		c_int,
 	)
-	fmt.Println("obytes=", hex.EncodeToString(obytes))
+
 	var o = Hash(hex.EncodeToString(obytes))
 	var u_x = burn.params.GetG().Mul(o)
 	P = P.Add(u_x.Mul(proof.tHat))
-	fmt.Println("u_x=", u_x)
-	for k, v := range gs.GetVector() {
-		fmt.Println("i=", k, "gs=", v)
-	}
-	for k, v := range hPrimes.GetVector() {
-		fmt.Println("i=", k, "hPrimes=", v)
-	}
+	
 	var primeBase = NewGeneratorParams(u_x, gs, hPrimes)
 	var ipStatement = InnerProduct_statement{}
 	ipStatement.PrimeBase = primeBase
