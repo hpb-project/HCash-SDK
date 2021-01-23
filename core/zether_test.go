@@ -9,9 +9,7 @@ import (
 )
 
 func TestZetherProof(t *testing.T) {
-	special_Random = true
-	special_RandomV = ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q())
-
+	b128.SetSpecialRandom(ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q()))
 	zeth := NewZetherProver()
 	var CLn = make([]types.Point, 2)
 	CLn[0] = types.Point{"0x2b6dc01a49982bfcbfb49a091a80758244ea78ee166931c4d679a7d2681fcccf", "0x0278ef49a7bbf8ccd4003ec6cd4689595062811c39f68664a1a8dc6d11447933"}

@@ -2,15 +2,16 @@ package client
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"gotest.tools/assert"
+	"log"
 	"testing"
 )
 
 func TestCreateAccount(t *testing.T) {
 
-	account := CreateAccount("")
-	fmt.Println("create random account", account)
+	//account := CreateAccount("")
+	//fmt.Println("create random account", account)
 
 	specialAccount := CreateAccount("0x299569ae0ae1d40140fd8d9afc54d2f581a292fd13fe88c7033d488119bb95b7")
 
@@ -70,4 +71,35 @@ func TestSign(t *testing.T) {
 	}
 	assert.Equal(t, sr.C, "0x206db78bfe338ecffd5b2f0606789ff1045bfbf1e46c897f8fa2e2115e19ed74")
 	assert.Equal(t, sr.S, "0x003fe7000561eeebccd4bff3160cd7f8fd50db62904d8fa217692a1f6ca8e7ed")
+}
+
+func TestTransferProof(t *testing.T) {
+	var params = `{
+		"epoch":53712840,
+		"value":1,
+		"diff" :3,
+		"sk"   :"0x20a89bb465e9e2262e25901525509686f6a26b2fba976f1d9ff00a0cdbb362b0",
+		"accounts": [
+			[{"gx":"0x053225ab9382466d6b094e6e0ef738df4f3182757c6a0d48ab34f30691c422b5",
+      		 "gy":"0x069427041ebfef2669c40b87a9d82690c75d332ecd4c1b775decd0e85884e2af"},
+			 {"gx":"0x08d0fe696c3aff9c574949d3788e3d5379ee4d99ed9014b738f2825b8af231e7",
+      		 "gy":"0x061aa65f5f632f30b3eef67207f2c3804f4e5ca07f4aaf195820b37c845fbd16"}
+			],
+			[{"gx":"0x0d9aa6c77eda65eee4299282135136c2b54205ccd835df94dc14bd0eb545553c",
+      		 "gy":"0x2ead1bbaa97fa27f76e006f747a08cd8cdb45af4032cbfaffeeb6c1046f0d384"},
+			 {"gx":"0x20bc85cf65b9afe7e4709592e382e59203e99e2c820c8bf2930707687004f687",
+      		 "gy":"0x033e5bb2711dae6a5b6f25be4d150bdc43f505863aa1c8eced61ed74c051bee3"}
+			]
+		],
+		"y":[
+			{"gx":"0x2b621590db6b2e3ca3f0e562ed05487caa26ae88c6e1f54883a04e51f6664bc1",
+			 "gy":"0x2c1173b211a55f5397ff869ae2feecad664a80730f4f6236a8664a167577ece7"},
+			{"gx":"0x20710d65688c288d13a36884422807e5f49fb3785023d49067d1f1f1107cb484",
+			 "gy":"0x09ad6933875e421a71f1ed619764ee73b0f628126ca9fe4c153368ed515e6db9"}
+		],
+		"index":[0, 1]
+	}`
+	b128.SetSpecialRandom(ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q()))
+	result := TransferProof(params)
+	log.Println("result = ", result)
 }

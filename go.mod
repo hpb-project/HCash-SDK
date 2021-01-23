@@ -7,5 +7,6 @@ require (
 	github.com/ethereum/go-ethereum v1.9.25
 	github.com/miguelmota/go-solidity-sha3 v0.1.1-0.20201223052718-94693bf94dde
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/sys v0.0.0-20200824131525-c12d262b63d8
 	gotest.tools v2.2.0+incompatible
 )

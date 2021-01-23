@@ -196,11 +196,12 @@ func TransferProof(param string) string {
 		return ""
 	}
 	var unserialized = make([][2]core.Point, 0)
-	for _, account := range p.Accounts {
+	for i, account := range p.Accounts {
 		var m [2]core.Point
 		m[0] = b128.UnSerialize(account[0])
 		m[1] = b128.UnSerialize(account[1])
 		unserialized = append(unserialized, m)
+		log.Println("unserialized ---> ", i, " account[0] = ", account[0], " account[1] = ", account[1])
 	}
 	if Some(unserialized) {
 		log.Printf("Reject, please make sure all parties(include decoys) are registered\n")
@@ -208,8 +209,15 @@ func TransferProof(param string) string {
 	}
 
 	var r = b128.RandomScalar()
+	log.Println("r = ", r.Text(16))
+
 	var C = make([]core.Point, len(p.Y))
 	for i, party := range p.Y {
+		//var C = y.map((party, i) => bn128.curve.g.mul(
+		//	i == index[0] ? new BN(-value) :
+		//		i == index[1] ? new BN(value) : new BN(0)
+		//	).add(bn128.unserialize(party).mul(r))
+		//);
 		var temp *ebigint.NBigInt
 		if i == p.Index[0] {
 			temp = ebigint.NewNBigInt(-int64(p.Value)).ForceRed(b128.Q())
@@ -220,14 +228,23 @@ func TransferProof(param string) string {
 				temp = ebigint.NewNBigInt(0).ForceRed(b128.Q())
 			}
 		}
-		C[i] = b128.CurveG().Mul(temp).Add(b128.UnSerialize(party).Mul(r))
+		log.Println("i == ", i, "temp = ", temp.Text(16))
+		t1 := b128.UnSerialize(party).Mul(r)
+		log.Println("t1 --->", i, " = ", b128.Serialize(t1))
+		log.Println("g = ", b128.Serialize(b128.CurveG()))
+		log.Println("g*temp = ", b128.Serialize(b128.CurveG().Mul(temp)))
+		C[i] = b128.CurveG().Mul(temp).Add(t1)
+		log.Println("C ---> ", i, " = ", b128.Serialize(C[i]))
 	}
 	var D = b128.CurveG().Mul(r)
+	log.Println("D = ", b128.Serialize(D))
 	var CLn = make([]types.Point, len(unserialized))
 	var CRn = make([]types.Point, len(unserialized))
 	for i, account := range unserialized {
 		CLn[i] = b128.Serialize(account[0].Add(C[i]))
 		CRn[i] = b128.Serialize(account[1].Add(D))
+		log.Println("Cln ---> ", i, " = ", CLn[i])
+		log.Println("CRn ---> ", i, " = ", CRn[i])
 	}
 
 	var NC = make([]types.Point, len(C))
@@ -251,6 +268,8 @@ func TransferProof(param string) string {
 	witness.R = r.Text(16)
 	witness.SK = p.SK
 	var proof = core.ProveTransfer(statement, witness)
+	log.Println("Proof = ", proof)
+
 	sk := ebigint.FromHex(p.SK)
 	var u = b128.Serialize(core.U(p.Epoch, sk))
 

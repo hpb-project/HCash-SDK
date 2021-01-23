@@ -1,10 +1,12 @@
 package core
 
 import (
+	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
+	"log"
 )
 
 type TransferStatement struct {
@@ -16,12 +18,41 @@ type TransferStatement struct {
 	Epoch int
 }
 
+func (t *TransferStatement) Content() {
+	log.Println("Transfer statement CLn = ")
+	for i, cln := range t.CLn {
+		fmt.Println("---> ", i, " = ", cln.String())
+	}
+	log.Println("Transfer statement CRn = ")
+	for i, crn := range t.CRn {
+		fmt.Println("---> ", i, " = ", crn.String())
+	}
+	log.Println("Transfer statement C = ")
+	for i, c := range t.C {
+		fmt.Println("---> ", i, " = ", c.String())
+	}
+	log.Println("Transfer statement Y = ")
+	for i, y := range t.Y {
+		fmt.Println("---> ", i, " = ", y.String())
+	}
+	log.Println("Transfer statement D = ", t.D.String())
+	log.Println("Transfer statement epoch = ", t.Epoch)
+}
+
 type TransferWitness struct {
 	BTransfer int
 	BDiff     int
 	Index     []int
 	SK        string // keypair['x'], bigInt hex string
 	R         string // random scalar, bigInt hex string
+}
+
+func (t *TransferWitness) Content() {
+	log.Println("Transfer witness btransfer = ", t.BTransfer)
+	log.Println("Transfer witness BDiff = ", t.BDiff)
+	log.Println("Transfer witness Index = ", t.Index)
+	log.Println("Transfer witness sk = ", t.SK)
+	log.Println("Transfer witness R = ", t.R)
 }
 
 type BurnWitness struct {

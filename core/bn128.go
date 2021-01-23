@@ -81,7 +81,8 @@ func NewPoint(d1, d2 *big.Int) Point {
 	x := BytePadding(d1.Bytes(), 32)
 	y := BytePadding(d2.Bytes(), 32)
 	m := BytesCombine(x, y)
-	g, _ := new(bn256.G1).Unmarshal(m)
+	g := new(bn256.G1)
+	g.Unmarshal(m)
 	return Point{g}
 }
 
@@ -108,7 +109,8 @@ func NewBN128() *BN128 {
 	gX, _ := hex.DecodeString("077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4")
 	gY, _ := hex.DecodeString("01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875")
 	m := BytesCombine(BytePadding(gX, 32), BytePadding(gY, 32))
-	b.G1, _ = new(bn256.G1).Unmarshal(m)
+	b.G1 = new(bn256.G1)
+	b.G1.Unmarshal(m)
 
 	if b.G1 == nil {
 		log.Println("new bn128 failed")
@@ -192,4 +194,10 @@ func (b *BN128) UnSerialize(pubkey types.Point) Point {
 func (b *BN128) Representation(p Point) string {
 	key := b.Serialize(p)
 	return "0x" + key.GX()[2:] + key.GY()[2:]
+}
+
+// for test.
+func (b *BN128) SetSpecialRandom(r *ebigint.NBigInt) {
+	special_Random = true
+	special_RandomV = r
 }
