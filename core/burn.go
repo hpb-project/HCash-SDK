@@ -147,30 +147,12 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var addr = ETH_ADDR{}
 	copy(addr[:], address[:])
 
-	
-	var abi_cln_x, abi_cln_y ABI_Bytes32
-	cln_x, _ := hex.DecodeString(istatement.CLn.GX()[2:])
-	cln_y, _ := hex.DecodeString(istatement.CLn.GY()[2:])
-	copy(abi_cln_x[:], cln_x[:])
-	copy(abi_cln_y[:], cln_y[:])
-
-	var abi_crn_x, abi_crn_y ABI_Bytes32
-	crn_x, _ := hex.DecodeString(istatement.CRn.GX()[2:])
-	crn_y, _ := hex.DecodeString(istatement.CRn.GY()[2:])
-	copy(abi_crn_x[:], crn_x[:])
-	copy(abi_crn_y[:], crn_y[:])
-
-	var abi_pub_x, abi_pub_y ABI_Bytes32
-	pub_x, _ := hex.DecodeString(istatement.Y.GX()[2:])
-	pub_y, _ := hex.DecodeString(istatement.Y.GY()[2:])
-	copy(abi_pub_x[:], pub_x[:])
-	copy(abi_pub_y[:], pub_y[:])
 	epoch := new(big.Int).SetInt64(int64(istatement.Epoch))
 
 	bytes, err := arguments.Pack(
-		[2]ABI_Bytes32{abi_cln_x, abi_cln_y},
-		[2]ABI_Bytes32{abi_crn_x, abi_crn_y},
-		[2]ABI_Bytes32{abi_pub_x, abi_pub_y},
+		parsePoint2ABI_Bytes32_2(statement.CLn),
+		parsePoint2ABI_Bytes32_2(statement.CRn),
+		parsePoint2ABI_Bytes32_2(statement.Y),
 		epoch,
 		addr)
 	fmt.Println("err=", err)
@@ -215,24 +197,6 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	proof.BS = burn.params.Commit(rho, sL, sR)
 	fmt.Println("bs=", proof.BS.String())
 
-	proof_ba := b128.Serialize(proof.BA)
-	var abi_ba_x, abi_ba_y ABI_Bytes32
-	ba_x, _ := hex.DecodeString(proof_ba.GX()[2:])
-	ba_y, _ := hex.DecodeString(proof_ba.GY()[2:])
-	copy(abi_ba_x[:], ba_x[:])
-	copy(abi_ba_y[:], ba_y[:])
-
-	proof_bs := b128.Serialize(proof.BS)
-	var abi_bs_x, abi_bs_y ABI_Bytes32
-	bs_x, _ := hex.DecodeString(proof_bs.GX()[2:])
-	bs_y, _ := hex.DecodeString(proof_bs.GY()[2:])
-	copy(abi_bs_x[:], bs_x[:])
-	copy(abi_bs_y[:], bs_y[:])
-
-	var statement_hash [32]byte
-	state_hash, _ := hex.DecodeString(b128.Bytes(statementHash.Int)[2:])
-	copy(statement_hash[:], state_hash[:])
-
 	var y *ebigint.NBigInt
 	{
 		argumentsy := abi.Arguments{
@@ -248,9 +212,9 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		}
 
 		ybytes, _ := argumentsy.Pack(
-			statement_hash,
-			[2]ABI_Bytes32{abi_ba_x, abi_ba_y},
-			[2]ABI_Bytes32{abi_bs_x, abi_bs_y},
+			parseBigInt2ABI_Bytes32(statementHash),
+			parsePoint2ABI_Bytes32_2(proof.BA),
+			parsePoint2ABI_Bytes32_2(proof.BS),
 		)
 		y = Hash(hex.EncodeToString(ybytes))
 	}
@@ -295,27 +259,10 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	}
 	var pcment = polyCommitment.GetCommitments()
 
-	pcment_0 := b128.Serialize(pcment[0])
-	var abi_pc0_x, abi_pc0_y ABI_Bytes32
-	pc0_x, _ := hex.DecodeString(pcment_0.GX()[2:])
-	pc0_y, _ := hex.DecodeString(pcment_0.GY()[2:])
-	copy(abi_pc0_x[:], pc0_x[:])
-	copy(abi_pc0_y[:], pc0_y[:])
-
-	pcment_1 := b128.Serialize(pcment[1])
-	var abi_pc1_x, abi_pc1_y ABI_Bytes32
-	pc1_x, _ := hex.DecodeString(pcment_1.GX()[2:])
-	pc1_y, _ := hex.DecodeString(pcment_1.GY()[2:])
-	copy(abi_pc1_x[:], pc1_x[:])
-	copy(abi_pc1_y[:], pc1_y[:])
-
-	var z_byte [32]byte
-	z_hash, _ := hex.DecodeString(b128.Bytes(z.Int)[2:])
-	copy(z_byte[:], z_hash[:])
 	xbytes, _ := argumentsx.Pack(
-		z_byte,
-		[2]ABI_Bytes32{abi_pc0_x, abi_pc0_y},
-		[2]ABI_Bytes32{abi_pc1_x, abi_pc1_y},
+		parseBigInt2ABI_Bytes32(z),
+		parsePoint2ABI_Bytes32_2(pcment[0]),
+		parsePoint2ABI_Bytes32_2(pcment[1]),
 	)
 
 	var x = Hash(hex.EncodeToString(xbytes))
@@ -336,38 +283,6 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var A_t = burn.params.GetG().Mul(k_b.RedNeg()).Add(burn.params.GetH().Mul(k_tau))
 	var A_u = GEpoch(statement.Epoch).Mul(k_sk)
 
-	var x_int [32]byte
-	x_bytes, _ := hex.DecodeString(b128.Bytes(x.Int)[2:])
-	copy(x_int[:], x_bytes[:])
-
-	ay_1 := b128.Serialize(A_y)
-	var abi_ay_x, abi_ay_y ABI_Bytes32
-	ay_x, _ := hex.DecodeString(ay_1.GX()[2:])
-	ay_y, _ := hex.DecodeString(ay_1.GY()[2:])
-	copy(abi_ay_x[:], ay_x[:])
-	copy(abi_ay_y[:], ay_y[:])
-
-	ab_1 := b128.Serialize(A_b)
-	var abi_ab_x, abi_ab_y ABI_Bytes32
-	ab_x, _ := hex.DecodeString(ab_1.GX()[2:])
-	ab_y, _ := hex.DecodeString(ab_1.GY()[2:])
-	copy(abi_ab_x[:], ab_x[:])
-	copy(abi_ab_y[:], ab_y[:])
-
-	at_1 := b128.Serialize(A_t)
-	var abi_at_x, abi_at_y ABI_Bytes32
-	at_x, _ := hex.DecodeString(at_1.GX()[2:])
-	at_y, _ := hex.DecodeString(at_1.GY()[2:])
-	copy(abi_at_x[:], at_x[:])
-	copy(abi_at_y[:], at_y[:])
-
-	au_1 := b128.Serialize(A_u)
-	var abi_au_x, abi_au_y ABI_Bytes32
-	au_x, _ := hex.DecodeString(au_1.GX()[2:])
-	au_y, _ := hex.DecodeString(au_1.GY()[2:])
-	copy(abi_au_x[:], au_x[:])
-	copy(abi_au_y[:], au_y[:])
-
 	argumentsproofc := abi.Arguments{
 		{
 			Type: bytes32_T,
@@ -386,11 +301,11 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		},
 	}
 	cbytes, _ := argumentsproofc.Pack(
-		x_int,
-		[2]ABI_Bytes32{abi_ay_x, abi_ay_y},
-		[2]ABI_Bytes32{abi_ab_x, abi_ab_y},
-		[2]ABI_Bytes32{abi_at_x, abi_at_y},
-		[2]ABI_Bytes32{abi_au_x, abi_au_y},
+		parseBigInt2ABI_Bytes32(x),
+		parsePoint2ABI_Bytes32_2(A_y),
+		parsePoint2ABI_Bytes32_2(A_b),
+		parsePoint2ABI_Bytes32_2(A_t),
+		parsePoint2ABI_Bytes32_2(A_u),
 	)
 	
 	proof.c = Hash(hex.EncodeToString(cbytes))
@@ -407,17 +322,13 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var P = proof.BA.Add(proof.BS.Mul(x)).Add(gs.Sum().Mul(z.RedNeg())).Add(hPrimes.Commit(hExp))
 	P = P.Add(burn.params.GetH().Mul(proof.mu.RedNeg())) // Statement P of protocol 1. should this be included in the calculation of v...?
 
-	var c_int [32]byte
-	c_bytes, _ := hex.DecodeString(b128.Bytes(proof.c.Int)[2:])
-	copy(c_int[:], c_bytes[:])
-
 	argumento := abi.Arguments{
 		{
 			Type: bytes32_T,
 		},
 	}
 	obytes, _ := argumento.Pack(
-		c_int,
+		parseBigInt2ABI_Bytes32(proof.c),
 	)
 
 	var o = Hash(hex.EncodeToString(obytes))
