@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"gotest.tools/assert"
 	"log"
@@ -10,11 +11,13 @@ import (
 
 func TestCreateAccount(t *testing.T) {
 
-	//account := CreateAccount("")
-	//fmt.Println("create random account", account)
+	for i := 0; i < 5; i++ {
+		account := CreateAccount("")
+		fmt.Println("create random account", account)
+	}
 
 	specialAccount := CreateAccount("0x299569ae0ae1d40140fd8d9afc54d2f581a292fd13fe88c7033d488119bb95b7")
-
+	fmt.Println("specialAccount=", specialAccount)
 	type Accy struct {
 		Gx string `json:"gx"`
 		Gy string `json:"gy"`
@@ -61,6 +64,7 @@ func TestSign(t *testing.T) {
 		"random":"0x2493a56987e869bbb150c14aff5b2e897d9fe78d6dad8b12c92432473f7e9abd"
 	}`
 	result := Sign(params)
+	fmt.Println("sign result = ", result)
 	type SignResult struct {
 		C string `json:"c"`
 		S string `json:"s"`
@@ -102,4 +106,46 @@ func TestTransferProof(t *testing.T) {
 	b128.SetSpecialRandom(ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q()))
 	result := TransferProof(params)
 	log.Println("result = ", result)
+}
+
+func TestShuffle(t *testing.T) {
+	var params = `{
+		"self": {
+			"gx":"0x06a50b18dca59140222133e77c3e3074e261caff764ef3520154a6650e7c2dc8",
+			"gy":"0x01328650520364c24dfaeac3ed931220b1c425a7abf3154bb3ca254a0e0111a2"
+		},
+		"friend": {
+			"gx":"0x0476db116e871903dac485ad7e2b14da1ef944e4ef113191e1ef2bb7036207a5",
+			"gy":"0x1a173b29acf71a20d0393c8b78505295ba447ecea06928889931f025c10b1fec"
+		},
+		"decoys": [
+			{"gx":"0x19447f92b16ab36ad31220030be6318903667005983915c026f852873eac3300",
+			 "gy":"0x0bf4bdf1d4e2cdb6792253317c5dea7d479c42f619ba5f4e073be15432462c42"},
+			{"gx":"0x184cea3a6b02dbe54da1e8818a94a5e3dfc093ad6cb84a9fb95e9ea8355de7df",
+			 "gy":"0x23ece55b936c422d5a76204289777e63e9ac3be1db039fa8aa70bd282d28ea87"}
+		]
+	}`
+	result := Shuffle(params)
+	log.Println("shuffle result=", result)
+}
+
+func TestBurnProof(t *testing.T) {
+	var params = `{
+		"accounts":[
+			{"gx":"0x19512743220081b7244cae299bb9f053b25d27337ee6b5d760eae272117db2af",
+			 "gy":"0x0f7dae3691a53ec20f37e534c34c0eb41d256c8c7f9472e4c618126d6a054b58"},
+			{"gx":"0x077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4",
+			  "gy":"0x01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875"}
+		],
+		"epoch":53672920,
+		"value":1,
+		"diff":6,
+		"sk":"0x04907c94209e3442e4830c142ba166ac032e511d00fcdf5f01b77d480518fa1a",
+		"y":{
+			"gx":"0x2af593d93442ca5d86d1f3748e624e68cc7db78da5fa568c40e32753e2e5b64b",
+			"gy":"0x301248643b2813c1aaa9fbb7cec25fa6fb8e6d6db1240649b848a545962a9f81"},
+		"sender":"d80ac1fb177c0b8d9c66de2b9657dd57084a2d7f"
+	}`
+	result := BurnProof(params)
+	log.Println("burnproof result = ", result)
 }
