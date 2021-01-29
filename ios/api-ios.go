@@ -6,7 +6,7 @@ import (
 )
 
 //export hCashCreateAccount
-func hCashCreateAccount(secret string) *C.char {
+func hCashCreateAccount(secret string) string {
 	var sk = make([]byte, len(secret))
 	copy(sk, []byte(secret))
 
@@ -15,7 +15,7 @@ func hCashCreateAccount(secret string) *C.char {
 }
 
 //export hCashSign
-func hCashSign(input string) *C.char {
+func hCashSign(input string) string {
 	var data = make([]byte, len(input))
 	copy(data, []byte(input))
 
@@ -34,7 +34,7 @@ func hCashReadBalance(param string) int32 {
 }
 
 //export hCashShuffle
-func hCashShuffle(param string) *C.char {
+func hCashShuffle(param string) string {
 	var data = make([]byte, len(param))
 	copy(data, []byte(param))
 
@@ -43,7 +43,7 @@ func hCashShuffle(param string) *C.char {
 }
 
 //export hCashTransferProof
-func hCashTransferProof(param string) *C.char {
+func hCashTransferProof(param string) string {
 	var data = make([]byte, len(param))
 	copy(data, []byte(param))
 
@@ -52,7 +52,7 @@ func hCashTransferProof(param string) *C.char {
 }
 
 //export hCashBurnProof
-func hCashBurnProof(param string) *C.char {
+func hCashBurnProof(param string) string {
 	var data = make([]byte, len(param))
 	copy(data, []byte(param))
 
