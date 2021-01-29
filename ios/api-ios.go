@@ -11,7 +11,7 @@ func hCashCreateAccount(secret string) string {
 	copy(sk, []byte(secret))
 
 	account := client.CreateAccount(string(sk))
-	return C.CString(account)
+	return account
 }
 
 //export hCashSign
@@ -20,7 +20,7 @@ func hCashSign(input string) string {
 	copy(data, []byte(input))
 
 	signed := client.Sign(string(data))
-	return C.CString(signed)
+	return signed
 }
 
 //export hCashReadBalance
@@ -39,7 +39,7 @@ func hCashShuffle(param string) string {
 	copy(data, []byte(param))
 
 	result := client.Shuffle(string(data))
-	return C.CString(result)
+	return result
 }
 
 //export hCashTransferProof
@@ -48,7 +48,7 @@ func hCashTransferProof(param string) string {
 	copy(data, []byte(param))
 
 	result := client.TransferProof(string(data))
-	return C.CString(result)
+	return result
 }
 
 //export hCashBurnProof
@@ -57,7 +57,7 @@ func hCashBurnProof(param string) string {
 	copy(data, []byte(param))
 
 	result := client.BurnProof(string(data))
-	return C.CString(result)
+	return result
 }
 
 func main() {}
