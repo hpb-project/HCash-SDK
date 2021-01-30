@@ -67,9 +67,9 @@ func ReadBalance(CL, CR types.Point, x *ebigint.NBigInt) int {
 	var gB = nCL.Add(nCR.Mul(x.RedNeg()))
 	var accumulator = b128.Zero()
 
-	for i := 0; i < b128.B_MAX(); i++ {
+	for i := uint(0); i < b128.B_MAX(); i++ {
 		if accumulator.Equal(gB) {
-			return i
+			return int(i)
 		}
 		accumulator = accumulator.Add(b128.CurveG())
 	}

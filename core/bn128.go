@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	FIELD_MODULUS, _ = new(big.Int).SetString("30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47", 16)
-	GROUP_MODULUS, _ = new(big.Int).SetString("30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001", 16)
-	bigzero          = "0x0000000000000000000000000000000000000000000000000000000000000000"
-	B_MAX            = 4294967295
+	FIELD_MODULUS, _      = new(big.Int).SetString("30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47", 16)
+	GROUP_MODULUS, _      = new(big.Int).SetString("30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001", 16)
+	bigzero               = "0x0000000000000000000000000000000000000000000000000000000000000000"
+	B_MAX            uint = 4294967295
 
 	// for test
 	special_Random  = false
@@ -162,7 +162,7 @@ func (b *BN128) Bytes(i *big.Int) string {
 	return "0x" + hexstr
 }
 
-func (b *BN128) B_MAX() int {
+func (b *BN128) B_MAX() uint {
 	return B_MAX
 }
 
