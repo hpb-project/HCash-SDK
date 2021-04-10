@@ -1,6 +1,13 @@
 package common
 
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"strconv"
+)
+
+var (
+	base = "0000000000000000000000000000000000000000000000000000000000000000"
+)
 
 func Has0xPrefix(str string) bool {
 	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
@@ -21,4 +28,11 @@ func HexWithout0x(str string) string {
 		return str[2:]
 	}
 	return str
+}
+
+func Uint642Bytes32(i uint64) string {
+	enc := make([]byte, 0)
+	str := string(strconv.AppendUint(enc, i, 16))
+	res := base[:len(base)-len(str)] + str
+	return res
 }

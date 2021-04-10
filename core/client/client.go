@@ -2,14 +2,15 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/hpb-project/HCash-SDK/common"
-	"github.com/hpb-project/HCash-SDK/common/types"
-	"github.com/hpb-project/HCash-SDK/core"
-	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	"log"
 	"math"
 	"math/big"
 	"math/rand"
+
+	"github.com/hpb-project/HCash-SDK/common"
+	"github.com/hpb-project/HCash-SDK/common/types"
+	"github.com/hpb-project/HCash-SDK/core"
+	"github.com/hpb-project/HCash-SDK/core/ebigint"
 )
 
 var (
@@ -336,4 +337,20 @@ func BurnProof(param string) string {
 
 	b, _ := json.Marshal(res)
 	return string(b)
+}
+
+func Register(y string, c string, s string) string {
+	return core.Register(y, c, s)
+}
+
+func Fund(y string, b uint64) string {
+	return core.Fund(y, b)
+}
+
+func Transfer(c string, d string, y string, u string, proof string) string {
+	return core.Transfer(c, d, y, u, proof)
+}
+
+func Burn(y string, bTransfer uint64, u string, proof string) string {
+	return core.Burn(y, bTransfer, u, proof)
 }
