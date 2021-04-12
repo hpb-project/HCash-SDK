@@ -339,18 +339,93 @@ func BurnProof(param string) string {
 	return string(b)
 }
 
-func Register(y string, c string, s string) string {
-	return core.Register(y, c, s)
+type APIResponse struct {
+	Data string `json:"data"`
 }
 
-func Fund(y string, b uint64) string {
-	return core.Fund(y, b)
+type TxRegisterParam struct {
+	Y types.Point `json:"y"`
+	C string      `json:"c"`
+	S string      `json:"s"`
 }
 
-func Transfer(c string, d string, y string, u string, proof string) string {
-	return core.Transfer(c, d, y, u, proof)
+func TxRegister(param string) string {
+	var p TxRegisterParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	var res APIResponse
+	res.Data = core.Register(p.Y.XY(), p.C, p.S)
+
+	b, _ := json.Marshal(res)
+	return string(b)
 }
 
-func Burn(y string, bTransfer uint64, u string, proof string) string {
-	return core.Burn(y, bTransfer, u, proof)
+type TxFundParam struct {
+	Y types.Point `json:"y"`
+	B uint64      `json:"b"`
+}
+
+func TxFund(param string) string {
+	var p TxFundParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	var res APIResponse
+	res.Data = core.Fund(p.Y.XY(), p.B)
+
+	b, _ := json.Marshal(res)
+	return string(b)
+}
+
+type TxTransferParam struct {
+	C     []types.Point `json:"C"`
+	D     types.Point   `json:"D"`
+	U     types.Point   `json:"u"`
+	Y     []types.Point `json:"y"`
+	Proof string        `json:"proof"`
+}
+
+func TxTransfer(param string) string {
+	var p TxTransferParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	var res APIResponse
+	var y = "0x"
+	var c = "0x"
+
+	for _, xy := range p.Y {
+		y += xy.XY()[2:]
+	}
+	for _, xy := range p.C {
+		c += xy.XY()[2:]
+	}
+	res.Data = core.Transfer(c, p.D.XY(), y, p.U.XY(), p.Proof)
+
+	b, _ := json.Marshal(res)
+	return string(b)
+}
+
+type TxBurnParam struct {
+	Y     types.Point `json:"y"`
+	B     uint64      `json:"bTransfer"`
+	U     types.Point `json:"u"`
+	Proof string      `json:"proof"`
+}
+
+func TxBurn(param string) string {
+	var p TxBurnParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	var res APIResponse
+	res.Data = core.Burn(p.Y.XY(), p.B, p.U.XY(), p.Proof)
+
+	b, _ := json.Marshal(res)
+	return string(b)
 }

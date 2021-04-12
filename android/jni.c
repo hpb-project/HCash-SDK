@@ -122,3 +122,76 @@ Java_com_hpb_android_backend_GoHCashBackend_hCashBurnProof(JNIEnv *env,
     free(proof);
     return ret;
 }
+
+//extern char *hCashTxRegister(struct go_string input);
+JNIEXPORT jstring JNICALL
+Java_com_hpb_android_backend_GoHCashBackend_hCashTxRegister(JNIEnv *env,
+                                                        jclass c, jstring input) {
+    jstring ret;
+    const char *input_str = (*env)->GetStringUTFChars(env, input, 0);
+    size_t input_len = (*env)->GetStringUTFLength(env, input);
+    char *res = hCashTxRegister((struct go_string) {
+            .str = input_str,
+            .n = input_len
+    });
+    (*env)->ReleaseStringUTFChars(env, input, input_str);
+
+    ret = (*env)->NewStringUTF(env, res);
+    free(res);
+    return ret;
+}
+
+
+//extern char *hCashTxFund(struct go_string input);
+JNIEXPORT jstring JNICALL
+Java_com_hpb_android_backend_GoHCashBackend_hCashTxFund(JNIEnv *env,
+                                                        jclass c, jstring input) {
+    jstring ret;
+    const char *input_str = (*env)->GetStringUTFChars(env, input, 0);
+    size_t input_len = (*env)->GetStringUTFLength(env, input);
+    char *res = hCashTxFund((struct go_string) {
+            .str = input_str,
+            .n = input_len
+    });
+    (*env)->ReleaseStringUTFChars(env, input, input_str);
+
+    ret = (*env)->NewStringUTF(env, res);
+    free(res);
+    return ret;
+}
+
+//extern char *hCashTxTransfer(struct go_string input);
+JNIEXPORT jstring JNICALL
+Java_com_hpb_android_backend_GoHCashBackend_hCashTxTransfer(JNIEnv *env,
+                                                        jclass c, jstring input) {
+    jstring ret;
+    const char *input_str = (*env)->GetStringUTFChars(env, input, 0);
+    size_t input_len = (*env)->GetStringUTFLength(env, input);
+    char *res = hCashTxTransfer((struct go_string) {
+            .str = input_str,
+            .n = input_len
+    });
+    (*env)->ReleaseStringUTFChars(env, input, input_str);
+
+    ret = (*env)->NewStringUTF(env, res);
+    free(res);
+    return ret;
+}
+
+//extern char *hCashTxBurn(struct go_string input);
+JNIEXPORT jstring JNICALL
+Java_com_hpb_android_backend_GoHCashBackend_hCashTxBurn(JNIEnv *env,
+                                                        jclass c, jstring input) {
+    jstring ret;
+    const char *input_str = (*env)->GetStringUTFChars(env, input, 0);
+    size_t input_len = (*env)->GetStringUTFLength(env, input);
+    char *res = hCashTxBurn((struct go_string) {
+            .str = input_str,
+            .n = input_len
+    });
+    (*env)->ReleaseStringUTFChars(env, input, input_str);
+
+    ret = (*env)->NewStringUTF(env, res);
+    free(res);
+    return ret;
+}

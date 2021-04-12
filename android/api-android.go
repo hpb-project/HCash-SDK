@@ -60,24 +60,40 @@ func hCashBurnProof(param string) *C.char {
 	return C.CString(result)
 }
 
-//export hRegister
-func hRegister(y string, c string, s string) *C.char {
-	return client.Register(y, c, s)
+//export hCashTxRegister
+func hCashTxRegister(param string) *C.char {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.TxRegister(string(data))
+	return C.CString(result)
 }
 
-//export hFund
-func hFund(y string, b uint64) *C.char {
-	return client.Fund(y, b)
+//export hCashTxFund
+func hCashTxFund(param string) *C.char {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.TxFund(string(data))
+	return C.CString(result)
 }
 
-//export hTransfer
-func hTransfer(c string, d string, y string, u string, proof string) *C.char {
-	return client.Transfer(c, d, y, u, proof)
+//export hCashTxTransfer
+func hCashTxTransfer(param string) *C.char {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.TxTransfer(string(data))
+	return C.CString(result)
 }
 
-//export hBurn
-func hBurn(y string, bTransfer uint64, u string, proof string) *C.char {
-	return client.Burn(y, bTransfer, u, proof)
+//export hCashTxBurn
+func hCashTxBurn(param string) *C.char {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.TxBurn(string(data))
+	return C.CString(result)
 }
 
 func main() {}

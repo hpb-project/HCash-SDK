@@ -56,6 +56,13 @@ func (p Point) String() string {
 	return string(d)
 }
 
+func (p Point) XY() string {
+	if len(p[0]) > 2 && len(p[1]) > 2 {
+		return "0x" + p[0][2:] + p[1][2:]
+	}
+	return "0x"
+}
+
 func (p Point) Match(o Point) bool {
 	px := common.FromHex(p.GX())
 	py := common.FromHex(p.GY())

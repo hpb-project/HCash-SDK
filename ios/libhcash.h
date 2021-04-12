@@ -14,4 +14,9 @@ extern char *hCashShuffle(gostring_t input);
 extern char *hCashTransferProof(gostring_t input);
 extern char *hCashBurnProof(gostring_t input);
 
+extern char *hCashTxRegister(gostring_t input);
+extern char *hCashTxFund(gostring_t input);
+extern char *hCashTxTransfer(gostring_t input);
+extern char *hCashTxBurn(gostring_t input);
+
 #endif
