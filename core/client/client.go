@@ -412,7 +412,7 @@ func TxTransfer(param string) string {
 
 type TxBurnParam struct {
 	Y     types.Point `json:"y"`
-	B     uint64      `json:"bTransfer"`
+	B     uint64      `json:"value"`
 	U     types.Point `json:"u"`
 	Proof string      `json:"proof"`
 }
