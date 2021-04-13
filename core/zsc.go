@@ -18,7 +18,7 @@ func Register(y string, c string, s string) string {
 	if common.Has0xPrefix(s) {
 		s = s[2:]
 	}
-	result := y + c + s
+	result := "0x" + y + c + s
 	return result
 }
 
@@ -27,7 +27,7 @@ func Fund(y string, b uint64) string {
 		y = y[2:]
 	}
 	btransfer := common.Uint642Bytes32(b)
-	result := y + btransfer
+	result := "0x" + y + btransfer
 	return result
 }
 
@@ -50,7 +50,7 @@ func Transfer(c string, d string, y string, u string, proof string) string {
 	cpos := BASEPOS + len(d) + BASEPOS + len(u) + BASEPOS
 	ypos := cpos + BASEPOS + len(c)
 	proofpos := ypos + BASEPOS + len(y)
-	result := common.Uint642Bytes32(uint64(cpos)/2) + d
+	result := "0x" + common.Uint642Bytes32(uint64(cpos)/2) + d
 	result = result + common.Uint642Bytes32(uint64(ypos)/2) + u
 	result = result + common.Uint642Bytes32(uint64(proofpos)/2)
 	result = result + common.Uint642Bytes32(uint64(len(c)/64)/2) + c
@@ -69,7 +69,7 @@ func Burn(y string, bTransfer uint64, u string, proof string) string {
 		proof = proof[2:]
 	}
 
-	result := y + common.Uint642Bytes32(bTransfer)
+	result := "0x" + y + common.Uint642Bytes32(bTransfer)
 	result = result + u
 	result = result + common.Uint642Bytes32(uint64(len(result)+BASEPOS)/2)
 	result = result + common.Uint642Bytes32(uint64(len(proof))/2)
