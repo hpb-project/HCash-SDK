@@ -19,6 +19,14 @@ extern char *hCashTransferProof(struct go_string input);
 
 extern char *hCashBurnProof(struct go_string input);
 
+extern char *hCashTxRegister(struct go_string input);
+
+extern char *hCashTxFund(struct go_string input);
+
+extern char *hCashTxTransfer(struct go_string input);
+
+extern char *hCashTxBurn(struct go_string input);
+
 
 JNIEXPORT jstring JNICALL
 Java_com_hpb_android_backend_GoHCashBackend_hCashCreateAccount(JNIEnv *env,
