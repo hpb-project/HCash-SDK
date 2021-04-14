@@ -356,7 +356,7 @@ func TxRegister(param string) string {
 		return ""
 	}
 	var res APIResponse
-	res.Data = core.Register(p.Y.XY(), p.C, p.S)
+	res.Data = "0x" + core.Register(p.Y.XY(), p.C, p.S)
 
 	b, _ := json.Marshal(res)
 	return string(b)
@@ -374,7 +374,7 @@ func TxFund(param string) string {
 		return ""
 	}
 	var res APIResponse
-	res.Data = core.Fund(p.Y.XY(), p.B)
+	res.Data = "0x" + core.Fund(p.Y.XY(), p.B)
 
 	b, _ := json.Marshal(res)
 	return string(b)
@@ -404,7 +404,7 @@ func TxTransfer(param string) string {
 	for _, xy := range p.C {
 		c += xy.XY()[2:]
 	}
-	res.Data = core.Transfer(c, p.D.XY(), y, p.U.XY(), p.Proof)
+	res.Data = "0x" + core.Transfer(c, p.D.XY(), y, p.U.XY(), p.Proof)
 
 	b, _ := json.Marshal(res)
 	return string(b)
@@ -424,7 +424,7 @@ func TxBurn(param string) string {
 		return ""
 	}
 	var res APIResponse
-	res.Data = core.Burn(p.Y.XY(), p.B, p.U.XY(), p.Proof)
+	res.Data = "0x" + core.Burn(p.Y.XY(), p.B, p.U.XY(), p.Proof)
 
 	b, _ := json.Marshal(res)
 	return string(b)
