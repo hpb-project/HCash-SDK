@@ -217,3 +217,25 @@ func TestTxBurn(t *testing.T) {
 	result := TxBurn(params)
 	log.Println("txBurn data = ", result)
 }
+
+func TestTxSimulateAccounts(t *testing.T) {
+	var params = `{
+	"y": [
+		{
+			"gx":"0x2108c67d72076cc3ec0a354d6bee68beb3caace1f0c9c36f1733147353cd76c1",
+			"gy":"0x1e77f035699642786289580997f28d2187bab69e82d4e0cfa846705601915cc9"
+		},{
+			"gx":"0x1df4db7361ce013d05e8884b78db59fa92f1b3c35037413242e6a6fb8b61a376",
+			"gy":"0x2fcd7826fe6685e52907214715399657f10a022dfc859ce53c13edf298a7ce51"
+		},{
+			"gx":"0x29e89e5d79b892db3fba9a9542c8902216d98016433d5ac6d39d339fab7bc4eb",
+			"gy":"0x19d9a9d0a39719ba736175e0693c81804cb9ca03ad4ab5fe8df800b14c256974"
+		},{
+			"gx":"0x2108c67d72076cc3ec0a354d6bee68beb3caace1f0c9c36f1733147353cd76c1",
+			"gy":"0x1e77f035699642786289580997f28d2187bab69e82d4e0cfa846705601915cc9"
+		}],
+	"epoch": 53984047
+	}`
+	result := TxSimulateAccounts(params)
+	log.Println("result=", result)
+}

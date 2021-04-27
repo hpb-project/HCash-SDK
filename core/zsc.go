@@ -76,3 +76,17 @@ func Burn(y string, bTransfer uint64, u string, proof string) string {
 	result = result + proof
 	return result
 }
+
+func SimulateAccounts(y string, epoch uint64) string {
+	if common.Has0xPrefix(y) {
+		y = y[2:]
+	}
+	// 79e543d0 ypos epoch len(y) y...
+	ypos := BASEPOS
+	ylength := len(y) / 64 / 2
+	result := common.Uint642Bytes32(uint64(ypos))
+	result = result + common.Uint642Bytes32(epoch)
+	result = result + common.Uint642Bytes32(uint64(ylength))
+	result = result + y
+	return result
+}

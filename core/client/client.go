@@ -429,3 +429,25 @@ func TxBurn(param string) string {
 	b, _ := json.Marshal(res)
 	return string(b)
 }
+
+type TxSimulateAccountsParam struct {
+	Y     []types.Point `json:"y"`
+	Epoch uint64        `json:"epoch"`
+}
+
+func TxSimulateAccounts(param string) string {
+	var p TxSimulateAccountsParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	var res APIResponse
+	var y = "0x"
+	for _, xy := range p.Y {
+		y += xy.XY()[2:]
+	}
+	res.Data = "0x" + core.SimulateAccounts(y, p.Epoch)
+
+	b, _ := json.Marshal(res)
+	return string(b)
+}
