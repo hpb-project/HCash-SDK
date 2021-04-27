@@ -96,4 +96,13 @@ func hCashTxBurn(param string) *C.char {
 	return C.CString(result)
 }
 
+//export hCashTxSimulateAccounts
+func hCashTxSimulateAccounts(param string) *C.char {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.TxSimulateAccounts(string(data))
+	return C.CString(result)
+}
+
 func main() {}

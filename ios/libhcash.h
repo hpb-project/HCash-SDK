@@ -18,5 +18,6 @@ extern char *hCashTxRegister(gostring_t input);
 extern char *hCashTxFund(gostring_t input);
 extern char *hCashTxTransfer(gostring_t input);
 extern char *hCashTxBurn(gostring_t input);
+extern char *hCashTxSimulateAccounts(gostring_t input);
 
 #endif
