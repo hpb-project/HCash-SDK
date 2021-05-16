@@ -16,7 +16,7 @@ func (p Point) GY() string {
 	return p[1]
 }
 
-func (p Point) Set(xy []string) Point {
+func (p *Point) Set(xy []string) *Point {
 	p[0] = xy[0]
 	p[1] = xy[1]
 	return p

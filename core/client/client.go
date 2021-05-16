@@ -352,7 +352,7 @@ type TxRegisterParam struct {
 func TxRegister(param string) string {
 	var p TxRegisterParam
 	if e := json.Unmarshal([]byte(param), &p); e != nil {
-		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		log.Printf("unmarshal to TxRegisterParam failed, err:%s\n", e.Error())
 		return ""
 	}
 	var res APIResponse
@@ -370,7 +370,7 @@ type TxFundParam struct {
 func TxFund(param string) string {
 	var p TxFundParam
 	if e := json.Unmarshal([]byte(param), &p); e != nil {
-		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		log.Printf("unmarshal to TxFundParam failed, err:%s\n", e.Error())
 		return ""
 	}
 	var res APIResponse
@@ -391,7 +391,7 @@ type TxTransferParam struct {
 func TxTransfer(param string) string {
 	var p TxTransferParam
 	if e := json.Unmarshal([]byte(param), &p); e != nil {
-		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		log.Printf("unmarshal to TxTransfer failed, err:%s\n", e.Error())
 		return ""
 	}
 	var res APIResponse
@@ -420,7 +420,7 @@ type TxBurnParam struct {
 func TxBurn(param string) string {
 	var p TxBurnParam
 	if e := json.Unmarshal([]byte(param), &p); e != nil {
-		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		log.Printf("unmarshal to TxBurnParam failed, err:%s\n", e.Error())
 		return ""
 	}
 	var res APIResponse
@@ -438,7 +438,7 @@ type TxSimulateAccountsParam struct {
 func TxSimulateAccounts(param string) string {
 	var p TxSimulateAccountsParam
 	if e := json.Unmarshal([]byte(param), &p); e != nil {
-		log.Printf("unmarshal to BurnProofParam failed, err:%s\n", e.Error())
+		log.Printf("unmarshal to TxSimulateAccountsParam failed, err:%s\n", e.Error())
 		return ""
 	}
 	var res APIResponse
@@ -447,6 +447,26 @@ func TxSimulateAccounts(param string) string {
 		y += xy.XY()[2:]
 	}
 	res.Data = "0x" + core.SimulateAccounts(y, p.Epoch)
+
+	b, _ := json.Marshal(res)
+	return string(b)
+}
+
+type ParseSimulateAccountsParam struct {
+	Data string `json:"data"`
+}
+
+func ParseSimulateAccountsData(param string) string {
+	var p ParseSimulateAccountsParam
+	if e := json.Unmarshal([]byte(param), &p); e != nil {
+		log.Printf("unmarshal to ParseSimulateAccountsParam failed, err:%s\n", e.Error())
+		return ""
+	}
+	res, err := core.ParseSimulateAccounts(p.Data)
+	if err != nil {
+		log.Printf("parse simulate accounts failed, %s\n", err.Error())
+		return ""
+	}
 
 	b, _ := json.Marshal(res)
 	return string(b)
