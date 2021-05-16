@@ -29,6 +29,8 @@ extern char *hCashTxBurn(struct go_string input);
 
 extern char *hCashTxSimulateAccounts(struct go_string input);
 
+extern char *hCashParseSimulateAccountsData(struct go_string input);
+
 
 JNIEXPORT jstring JNICALL
 Java_com_hpb_android_backend_GoHCashBackend_hCashCreateAccount(JNIEnv *env,
@@ -223,3 +225,22 @@ Java_com_hpb_android_backend_GoHCashBackend_hCashTxSimulateAccounts(JNIEnv *env,
     free(res);
     return ret;
 }
+
+//extern char *hCashParseSimulateAccountsData(struct go_string input);
+JNIEXPORT jstring JNICALL
+Java_com_hpb_android_backend_GoHCashBackend_hCashParseSimulateAccountsData(JNIEnv *env,
+                                                        jclass c, jstring input) {
+    jstring ret;
+    const char *input_str = (*env)->GetStringUTFChars(env, input, 0);
+    size_t input_len = (*env)->GetStringUTFLength(env, input);
+    char *res = hCashParseSimulateAccountsData((struct go_string) {
+            .str = input_str,
+            .n = input_len
+    });
+    (*env)->ReleaseStringUTFChars(env, input, input_str);
+
+    ret = (*env)->NewStringUTF(env, res);
+    free(res);
+    return ret;
+}
+

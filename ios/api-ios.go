@@ -104,4 +104,13 @@ func hCashTxSimulateAccounts(param string) string {
 	return result
 }
 
+//export hCashParseSimulateAccountsData
+func hCashParseSimulateAccountsData(param string) string {
+	var data = make([]byte, len(param))
+	copy(data, []byte(param))
+
+	result := client.ParseSimulateAccountsData(string(data))
+	return result
+}
+
 func main() {}

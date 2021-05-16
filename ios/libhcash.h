@@ -20,4 +20,6 @@ extern char *hCashTxTransfer(gostring_t input);
 extern char *hCashTxBurn(gostring_t input);
 extern char *hCashTxSimulateAccounts(gostring_t input);
 
+extern char *hCashParseSimulateAccountsData(gostring_t input);
+
 #endif
