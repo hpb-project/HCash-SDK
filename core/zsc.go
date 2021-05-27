@@ -126,13 +126,13 @@ func ParseSimulateAccounts(data string) (*ParseSimulateAccountsResponse, error) 
 	start := hexdata
 	for len(start) > 0 {
 		item := [2]types.Point{}
-		account0_x := hex.EncodeToString(start[:32])
-		account0_y := hex.EncodeToString(start[32:64])
+		account0_x := "0x" + hex.EncodeToString(start[:32])
+		account0_y := "0x" + hex.EncodeToString(start[32:64])
 		item[0].Set([]string{account0_x, account0_y})
 		//fmt.Printf("a0_x = %s, a0_y = %s, item = %s\n", account0_x, account0_y, item[0])
 
-		account1_x := hex.EncodeToString(start[64:96])
-		account1_y := hex.EncodeToString(start[96:128])
+		account1_x := "0x" + hex.EncodeToString(start[64:96])
+		account1_y := "0x" + hex.EncodeToString(start[96:128])
 		item[1].Set([]string{account1_x, account1_y})
 		//fmt.Printf("a1_x = %s, a1_y = %s, item = %s\n", account1_x, account1_y, item[1])
 		res.Accounts = append(res.Accounts, item)
