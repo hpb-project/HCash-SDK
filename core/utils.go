@@ -107,15 +107,15 @@ func SignWithRandom(address []byte, keypair Account, k *ebigint.NBigInt) (*ebigi
 	copy(addr[:], address[:])
 
 	var bx, by ABI_Bytes32
-	bbx, _ := hex.DecodeString(keypair.Y.GX()[2:])
-	bby, _ := hex.DecodeString(keypair.Y.GY()[2:])
+	bbx := common.FromHex(keypair.Y.GX())
+	bby := common.FromHex(keypair.Y.GY())
 	copy(bx[:], bbx)
 	copy(by[:], bby)
 
 	skey := b128.Serialize(K)
 	var kx, ky ABI_Bytes32
-	bkx, _ := hex.DecodeString(skey.GX()[2:])
-	bky, _ := hex.DecodeString(skey.GY()[2:])
+	bkx := common.FromHex(skey.GX())
+	bky := common.FromHex(skey.GY())
 	copy(kx[:], bkx[:])
 	copy(ky[:], bky[:])
 	thebytes, e := arguments.Pack(
@@ -159,15 +159,15 @@ func Sign(address []byte, keypair Account) (*ebigint.NBigInt, *ebigint.NBigInt, 
 	copy(addr[:], address[:])
 
 	var bx, by ABI_Bytes32
-	bbx, _ := hex.DecodeString(keypair.Y.GX()[2:])
-	bby, _ := hex.DecodeString(keypair.Y.GY()[2:])
+	bbx := common.FromHex(keypair.Y.GX())
+	bby := common.FromHex(keypair.Y.GY())
 	copy(bx[:], bbx)
 	copy(by[:], bby)
 
 	skey := b128.Serialize(K)
 	var kx, ky ABI_Bytes32
-	bkx, _ := hex.DecodeString(skey.GX()[2:])
-	bky, _ := hex.DecodeString(skey.GY()[2:])
+	bkx := common.FromHex(skey.GX())
+	bky := common.FromHex(skey.GY())
 	copy(kx[:], bkx[:])
 	copy(ky[:], bky[:])
 	thebytes, e := arguments.Pack(

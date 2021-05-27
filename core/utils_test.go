@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/hex"
+	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/ebigint"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
@@ -70,7 +71,7 @@ func BenchmarkCreateAccount(b *testing.B) {
 }
 
 func TestSign(t *testing.T) {
-	address, _ := hex.DecodeString("E4920905e06c6B6070477c40B85756ffDa3cD3E6")
+	address := common.FromHex("E4920905e06c6B6070477c40B85756ffDa3cD3E6")
 	nx, _ := new(big.Int).SetString("299569ae0ae1d40140fd8d9afc54d2f581a292fd13fe88c7033d488119bb95b7", 16)
 	account := CreateAccountWithX(ebigint.ToNBigInt(nx))
 	//log.Println("test sign with account ", account.String())

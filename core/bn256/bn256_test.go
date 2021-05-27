@@ -3,7 +3,7 @@ package bn256
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/hex"
+	"github.com/hpb-project/HCash-SDK/common"
 	"log"
 	"math/big"
 	"testing"
@@ -133,8 +133,8 @@ func BytesCombine(pBytes ...[]byte) []byte {
 }
 
 func TestG1Mul(t *testing.T) {
-	gX, _ := hex.DecodeString("077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4")
-	gY, _ := hex.DecodeString("01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875")
+	gX := common.FromHex("077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4")
+	gY := common.FromHex("01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875")
 	m := BytesCombine(BytePadding(gX, 32), BytePadding(gY, 32))
 	g1 := new(G1)
 	g1.Unmarshal(m)

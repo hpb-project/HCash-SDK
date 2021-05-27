@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/hex"
 	"github.com/hpb-project/HCash-SDK/common"
 	"github.com/hpb-project/HCash-SDK/common/types"
 	"github.com/hpb-project/HCash-SDK/core/bn256"
@@ -37,8 +36,8 @@ func TestKeyPair(t *testing.T) {
 }
 
 func TestBn256(t *testing.T) {
-	gX, _ := hex.DecodeString("077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4")
-	gY, _ := hex.DecodeString("01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875")
+	gX := common.FromHex("077da99d806abd13c9f15ece5398525119d11e11e9836b2ee7d23f6159ad87d4")
+	gY := common.FromHex("01485efa927f2ad41bff567eec88f32fb0a0f706588b4e41a8d587d008b7f875")
 
 	m := BytesCombine(BytePadding(gX, 32), BytePadding(gY, 32))
 	g1 := new(bn256.G1)

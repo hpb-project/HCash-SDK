@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/hpb-project/HCash-SDK/common"
 	"log"
 	"math/big"
 	"strings"
@@ -143,7 +144,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 			Type: address_T,
 		},
 	}
-	address, _ := hex.DecodeString(istatement.Sender)
+	address := common.FromHex(istatement.Sender)
 	var addr = ETH_ADDR{}
 	copy(addr[:], address[:])
 
@@ -155,11 +156,11 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		parsePoint2ABI_Bytes32_2(statement.Y),
 		epoch,
 		addr)
-	fmt.Println("err=", err)
+	//fmt.Println("statement addr = ", hex.EncodeToString(addr[:]))
 	strbytes := hex.EncodeToString(bytes)
 
 	var statementHash = Hash(strbytes)
-
+	//fmt.Println("statementhash  = ", statementHash.Text(16))
 	splits := strings.Split(witness.bDiff.Text(2), "")
 
 	reversed := Reverse(splits)
@@ -307,7 +308,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 		parsePoint2ABI_Bytes32_2(A_t),
 		parsePoint2ABI_Bytes32_2(A_u),
 	)
-	
+
 	proof.c = Hash(hex.EncodeToString(cbytes))
 	fmt.Println("proof.c=", proof.c.String())
 
@@ -334,7 +335,7 @@ func (burn BurnProver) GenerateProof(istatement BurnStatement, iwitness BurnWitn
 	var o = Hash(hex.EncodeToString(obytes))
 	var u_x = burn.params.GetG().Mul(o)
 	P = P.Add(u_x.Mul(proof.tHat))
-	
+
 	var primeBase = NewGeneratorParams(u_x, gs, hPrimes)
 	var ipStatement = InnerProduct_statement{}
 	ipStatement.PrimeBase = primeBase
