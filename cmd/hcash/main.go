@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	MainNet = "https://hpbnode.com"
+	MainNet = "http://114.242.26.15:30180"
 )
 
 var (
@@ -201,6 +201,11 @@ func main() {
 	alicePrivKey := flag.String("ak", "", "alice private key in hex")
 
 	flag.Parse()
+
+	if strings.HasPrefix(*senderPrivKey, "0x") ||
+		strings.HasPrefix(*senderPrivKey, "0X") {
+		*senderPrivKey = (*senderPrivKey)[2:]
+	}
 
 	senderPriv, err := crypto.HexToECDSA(*senderPrivKey)
 	if err != nil {
