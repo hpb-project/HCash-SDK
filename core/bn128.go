@@ -18,7 +18,7 @@ var (
 	B_MAX            uint = 4294967295
 
 	// for test
-	special_Random  = true
+	special_Random  = false
 	special_RandomV = ebigint.FromHex("c3f4db6cd90e04d6e086f73fdb7a4ccaa4f57e48593d80c11c0fdd1fcac348df").ToRed(b128.Q())
 )
 
